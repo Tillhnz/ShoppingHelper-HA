@@ -20,6 +20,14 @@
       this.innerHTML = `<svg viewBox="0 0 24 24" style="width:var(--mdc-icon-size,24px);height:var(--mdc-icon-size,24px);fill:currentColor"><path d="${path}"/></svg>`;
     }
   });
+  customElements.define("ha-card", class extends HTMLElement {
+    connectedCallback() {
+      Object.assign(this.style, {
+        display: "block", background: "var(--card-background-color)", color: "var(--primary-text-color)",
+        borderRadius: "12px", border: "1px solid var(--divider-color)", boxShadow: "0 1px 3px rgba(0,0,0,.08)",
+      });
+    }
+  });
   customElements.define("ha-menu-button", class extends HTMLElement {
     connectedCallback() { this.style.display = "inline-block"; this.style.width = "8px"; }
   });
@@ -59,10 +67,12 @@
     return cat;
   };
 
+  const listeners = new Set();
+  listener = (d) => listeners.forEach((cb) => cb(JSON.parse(JSON.stringify(d))));
   window.mockHass = {
     language: "de",
     connection: {
-      subscribeMessage(cb) { listener = cb; emit(); return Promise.resolve(() => { listener = null; }); },
+      subscribeMessage(cb) { listeners.add(cb); emit(); return Promise.resolve(() => listeners.delete(cb)); },
     },
     async callWS(msg) {
       const type = msg.type.split("/")[1];

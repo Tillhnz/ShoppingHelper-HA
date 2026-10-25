@@ -25,6 +25,7 @@ from .const import (
     CONF_REQUIRE_ADMIN,
     CONF_SIDEBAR_ICON,
     CONF_SIDEBAR_TITLE,
+    DATA_CARD_REGISTERED,
     DATA_COORDINATOR,
     DATA_STATIC_REGISTERED,
     DEFAULT_SIDEBAR_ICON,
@@ -43,6 +44,7 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.SENSOR]
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 PANEL_FILE = "shopping-helper-panel.js"
+CARD_FILE = "shopping-helper-card.js"
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -107,6 +109,12 @@ async def _async_register_panel(hass: HomeAssistant, entry: ConfigEntry) -> None
             [StaticPathConfig(STATIC_URL, str(FRONTEND_DIR), False)]
         )
         hass.data[DOMAIN][DATA_STATIC_REGISTERED] = True
+
+    # dashboard card: loaded on every frontend page, so no Lovelace resource is needed
+    if not hass.data[DOMAIN].get(DATA_CARD_REGISTERED):
+        card_hash = await hass.async_add_executor_job(_file_hash, FRONTEND_DIR / CARD_FILE)
+        frontend.add_extra_js_url(hass, f"{STATIC_URL}/{CARD_FILE}?v={VERSION}-{card_hash}")
+        hass.data[DOMAIN][DATA_CARD_REGISTERED] = True
 
     # cache busting: new file content -> new URL
     file_hash = await hass.async_add_executor_job(_file_hash, FRONTEND_DIR / PANEL_FILE)

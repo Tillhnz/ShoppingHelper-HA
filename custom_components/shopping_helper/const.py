@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 DOMAIN = "shopping_helper"
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 
 CONF_COOKIDOO_LISTS = "cookidoo_lists"
 CONF_OWN_LISTS = "own_lists"
@@ -26,5 +26,6 @@ STORAGE_VERSION = 1
 
 DATA_COORDINATOR = "coordinator"
 DATA_STATIC_REGISTERED = "static_registered"
+DATA_CARD_REGISTERED = "card_registered"
 DATA_WS_REGISTERED = "ws_registered"
 SIGNAL_UPDATE = f"{DOMAIN}_update"

@@ -35,6 +35,8 @@ Eigene:   2 l Milch     ┘──►  Milch · 2,3 l                            
 - **Sensoren** – `sensor.shopping_helper_offene_artikel` (inkl. Kategorien und Artikelliste als
   Attribute), `sensor.shopping_helper_einkaufsfortschritt` und `sensor.shopping_helper_vorschlage`
   (fällige Artikel als Attribut) für Automationen und Dashboards (die Entitäts-IDs richten sich nach der Systemsprache).
+- **Dashboard-Karte** – `custom:shopping-helper-card` zeigt die zusammengeführte Liste direkt im
+  Dashboard: abhaken, hinzufügen, Vorschläge antippen. Wird automatisch geladen, kein Ressourcen-Eintrag nötig.
 - **Aktionen** – `shopping_helper.add_item`, `refresh`, `clear_completed`, `set_category`.
 - Hell/Dunkel-Theme, mobil-tauglich (auch in der Companion-App), keine Abhängigkeiten, kein Build-Schritt.
 
@@ -64,6 +66,27 @@ Seitenleiste der Eintrag **Einkaufen**.
 Über **Konfigurieren** lassen sich später ändern: Listen, Standardliste für neue Artikel,
 Titel/Icon der Seitenleiste, Sichtbarkeit nur für Admins und die **Laden-Reihenfolge**
 (eine Kategorie pro Zeile).
+
+## Dashboard-Karte
+
+Dashboard bearbeiten → **Karte hinzufügen** → „Shopping Helper“ (alle Optionen lassen sich im
+visuellen Editor einstellen). Oder per YAML:
+
+```yaml
+type: custom:shopping-helper-card
+title: Einkaufsliste       # Überschrift
+filter: all                # all | cookidoo | own
+group_by_category: true    # nach Supermarkt-Kategorien gruppieren
+show_add: true             # Eingabefeld zum Hinzufügen
+show_suggestions: true     # Vorschläge für häufig gekaufte Artikel
+show_progress: true        # Fortschrittsbalken
+show_done: false           # erledigte Artikel weiter anzeigen
+max_items: 0               # 0 = alle, sonst „… weitere“ mit Link zum Panel
+```
+
+Ein Tipp auf einen Artikel hakt ihn in allen Ursprungslisten ab; abgehakte Artikel bleiben ein paar
+Sekunden sichtbar, damit sich ein Fehltipp rückgängig machen lässt. Das Symbol oben rechts öffnet das
+Panel. Nach der Installation bzw. einem Update einmal die Seite im Browser neu laden.
 
 ## Beispiele
 
@@ -99,7 +122,7 @@ actions:
 ## Demo ohne Home Assistant
 
 `demo/index.html` im Browser öffnen – das Panel läuft dort mit Beispieldaten und simulierten
-Aktionen. `python3 demo/generate_sample.py` erzeugt die Beispieldaten neu aus der echten Logik.
+Aktionen, `demo/card.html` zeigt die Dashboard-Karte in drei Varianten. `python3 demo/generate_sample.py` erzeugt die Beispieldaten neu aus der echten Logik.
 
 ## Aufbau
 
@@ -116,7 +139,8 @@ custom_components/shopping_helper/
 │   ├── merge.py         Zusammenführen & Statistik
 │   └── history.py       Verlauf & Häufigkeit
 └── frontend/
-    └── shopping-helper-panel.js   Seitenleisten-Panel (Web Component, ohne Build)
+    ├── shopping-helper-panel.js   Seitenleisten-Panel (Web Component, ohne Build)
+    └── shopping-helper-card.js    Dashboard-Karte (Web Component, ohne Build)
 ```
 
 ## Entwicklung

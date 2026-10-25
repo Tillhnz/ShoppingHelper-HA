@@ -31,3 +31,4 @@ jobs:
       - run: pip install pytest
       - run: pytest -q
       - run: node --check custom_components/shopping_helper/frontend/shopping-helper-panel.js
+      - run: node --check custom_components/shopping_helper/frontend/shopping-helper-card.js
