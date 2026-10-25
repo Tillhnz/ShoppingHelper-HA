@@ -10,6 +10,7 @@ import math
 from statistics import median
 
 from .categories import categorize
+from .icons import emoji_for
 from .merge import SourceItem
 from .parser import normalize_key, parse_entry
 
@@ -205,6 +206,8 @@ class HistoryTracker:
                     }
                 )
         result.sort(key=lambda s: (-s["score"], s["name"]))
+        for s in result[:limit]:
+            s["emoji"] = emoji_for(s["name"], s["key"], s["category"])
         return result[:limit]
 
     def names(self, limit: int = 150) -> list[str]:
@@ -268,6 +271,9 @@ class HistoryTracker:
                 }
             )
         top.sort(key=lambda t: (-t["count"], t["name"]))
+        top = top[:12]
+        for t in top:
+            t["emoji"] = emoji_for(t["name"], t["key"], t["category"])
 
         total = cookidoo + own
         first = min(self.daily) if self.daily else today

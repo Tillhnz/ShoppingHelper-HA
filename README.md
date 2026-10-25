@@ -26,6 +26,11 @@ Eigene:   2 l Milch     ┘──►  Milch · 2,3 l                            
 - **Bereits vorhanden** – das Haus-Symbol an jedem Eintrag markiert Dinge, die noch zu Hause
   sind: Sie verschwinden von der Liste (Bereich „Bereits vorhanden“), werden in Cookidoo als
   vorhanden markiert, zählen aber nicht als Einkauf in der Statistik.
+- **Zwei Ansichten** – oben rechts in der Liste zwischen **Liste** und **Kacheln** umschalten
+  (wird pro Gerät gemerkt). Die Kachelansicht zeigt jedes Lebensmittel als Kachel mit Symbol
+  (🧅 🥛 🧀 …, rund 480 Begriffe erkannt, sonst das Symbol der Kategorie). Antippen = gekauft,
+  Haus = vorhanden, gedrückt halten = Details. Gekaufte Kacheln unter „Im Wagen“ lassen sich mit
+  einem Tipp zurück auf die Liste holen.
 - **Nachvollziehbar zusammengefasst** – der Pfeil an einem Eintrag zeigt, aus welchen Listen und
   Originaleinträgen er besteht, welche Menge jeweils erkannt wurde und wie die Summe zustande kommt.
 - **Vorschläge** – Shopping Helper merkt sich, was du wie oft kaufst. Artikel, die wieder fällig

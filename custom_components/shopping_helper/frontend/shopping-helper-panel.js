@@ -18,6 +18,9 @@ class ShoppingHelperPanel extends HTMLElement {
     this._filter = "all"; // all | cookidoo | own
     this._search = "";
     this._showSearch = false;
+    this._layout = "list"; // list | tiles
+    this._sheet = null; // key of the item shown in the details sheet (tile layout)
+    this._tilesHint = true;
     this._expanded = null;
     this._pending = new Set();
     this._collapsed = new Set();
@@ -25,6 +28,8 @@ class ShoppingHelperPanel extends HTMLElement {
       const saved = JSON.parse(localStorage.getItem("shopping-helper-ui") || "{}");
       // "done" and "have" sections start collapsed
       this._collapsed = new Set(saved.collapsed || ["__done", "__have"]);
+      this._layout = saved.layout === "tiles" ? "tiles" : "list";
+      this._tilesHint = saved.tilesHint !== false;
     } catch (e) {
       /* storage not available */
     }
@@ -101,7 +106,7 @@ class ShoppingHelperPanel extends HTMLElement {
     try {
       localStorage.setItem(
         "shopping-helper-ui",
-        JSON.stringify({ collapsed: [...this._collapsed] })
+        JSON.stringify({ collapsed: [...this._collapsed], layout: this._layout, tilesHint: this._tilesHint })
       );
     } catch (e) {
       /* ignore */
@@ -139,12 +144,14 @@ class ShoppingHelperPanel extends HTMLElement {
               <button data-filter="own">Eigene</button>
             </div>
             <button class="icon-btn small" id="search-toggle" title="Suchen"><ha-icon icon="mdi:magnify"></ha-icon></button>
+            <button class="icon-btn small" id="layout-toggle"></button>
           </div>
           <div class="search" id="search-row" hidden><ha-icon icon="mdi:magnify"></ha-icon><input id="search" placeholder="In der Liste suchen" /></div>
           <div id="list"></div>
         </section>
         <section id="stats-tab" hidden></section>
         <section id="insights-tab" hidden></section>
+        <div id="sheet"></div>
       </div>`;
 
     this._menuButton = document.createElement("ha-menu-button");
@@ -170,6 +177,21 @@ class ShoppingHelperPanel extends HTMLElement {
         this._render();
       })
     );
+    const layoutBtn = root.getElementById("layout-toggle");
+    const paintLayoutBtn = () => {
+      const tiles = this._layout === "tiles";
+      layoutBtn.innerHTML = `<ha-icon icon="${tiles ? "mdi:format-list-bulleted" : "mdi:view-grid-outline"}"></ha-icon>`;
+      layoutBtn.title = tiles ? "Als Liste anzeigen" : "Als Kacheln anzeigen";
+    };
+    paintLayoutBtn();
+    layoutBtn.addEventListener("click", () => {
+      this._layout = this._layout === "tiles" ? "list" : "tiles";
+      this._expanded = null;
+      this._sheet = null;
+      paintLayoutBtn();
+      this._saveUi();
+      this._render();
+    });
     root.getElementById("search-toggle").addEventListener("click", () => {
       this._showSearch = !this._showSearch;
       const row = root.getElementById("search-row");
@@ -198,6 +220,38 @@ class ShoppingHelperPanel extends HTMLElement {
     // event delegation for the dynamic list
     const list = root.getElementById("list");
     list.addEventListener("click", (ev) => this._onListClick(ev));
+    // tile layout: long press / right click opens the details sheet
+    list.addEventListener("pointerdown", (ev) => {
+      const tile = ev.target.closest(".tile[data-key]");
+      if (!tile || ev.target.closest("[data-have-btn],[data-more]")) return;
+      clearTimeout(this._pressTimer);
+      this._pressTimer = setTimeout(() => {
+        this._suppressClick = true;
+        setTimeout(() => (this._suppressClick = false), 700);
+        this._openSheet(tile.dataset.key);
+      }, 480);
+    });
+    ["pointerup", "pointerleave", "pointercancel", "scroll"].forEach((t) =>
+      list.addEventListener(t, () => clearTimeout(this._pressTimer), { passive: true })
+    );
+    list.addEventListener("contextmenu", (ev) => {
+      const tile = ev.target.closest(".tile[data-key]");
+      if (!tile) return;
+      ev.preventDefault();
+      this._openSheet(tile.dataset.key);
+    });
+    list.addEventListener("keydown", (ev) => {
+      if ((ev.key === "Enter" || ev.key === " ") && ev.target.matches(".tile[data-key]")) {
+        ev.preventDefault();
+        ev.target.click();
+      }
+    });
+    const sheet = root.getElementById("sheet");
+    sheet.addEventListener("click", (ev) => this._onSheetClick(ev));
+    sheet.addEventListener("change", (ev) => {
+      const sel = ev.target.closest("select[data-category-for]");
+      if (sel) this._ws({ type: "set_category", key: sel.dataset.categoryFor, category: sel.value || null }, "Kategorie gespeichert");
+    });
     list.addEventListener("change", (ev) => {
       const sel = ev.target.closest("select[data-category-for]");
       if (!sel) return;
@@ -220,13 +274,21 @@ class ShoppingHelperPanel extends HTMLElement {
       return;
     }
     if (this._onClearClick(ev)) return;
+    if (this._suppressClick) {
+      this._suppressClick = false;
+      return;
+    }
     const more = ev.target.closest("[data-more]");
+    if (more && this._layout === "tiles") {
+      this._openSheet(more.dataset.more);
+      return;
+    }
     if (more) {
       this._expanded = this._expanded === more.dataset.more ? null : more.dataset.more;
       this._render();
       return;
     }
-    const haveBtn = ev.target.closest("[data-have]");
+    const haveBtn = ev.target.closest("[data-have-btn]");
     if (haveBtn) {
       const row = haveBtn.closest("[data-key]");
       const key = row.dataset.key;
@@ -427,6 +489,12 @@ class ShoppingHelperPanel extends HTMLElement {
 
     const keep = (i) => this._pending.has(i.key); // keep a just-tapped row in place until the update
     const openItem = (i) => !i.checked || (keep(i) && !i.have);
+    if (this._layout === "tiles") {
+      this._renderTiles(categories, stats, keep, openItem);
+      this._renderSheet();
+      return;
+    }
+    this.shadowRoot.getElementById("sheet").innerHTML = "";
     const sections = categories
       .map((cat) => {
         const items = cat.items.filter((i) => this._visible(i) && openItem(i));
@@ -473,6 +541,143 @@ class ShoppingHelperPanel extends HTMLElement {
       group("__done", "Im Wagen", "mdi:cart-check", bought) +
       group("__have", "Bereits vorhanden", "mdi:home-outline", have) +
       this._clearFooter(stats);
+  }
+
+  /* ------------------------------------------------------------ tile layout */
+  _renderTiles(categories, stats, keep, openItem) {
+    const root = this.shadowRoot;
+    const tile = (i, color) => {
+      const pending = this._pending.has(i.key);
+      return `<div class="tile ${i.checked ? "checked" : ""} ${i.have ? "have" : ""} ${i.partial ? "partial" : ""} ${pending ? "pending" : ""}"
+          role="button" tabindex="0" style="--cat:${esc(color)}" data-key="${esc(i.key)}" data-checked="${i.checked}" data-have="${i.have}"
+          aria-label="${esc(i.name)}${i.quantity ? ", " + esc(i.quantity) : ""}">
+        <span class="tile-emoji" aria-hidden="true">${esc(i.emoji || "🛒")}</span>
+        <span class="tile-name">${esc(i.name)}</span>
+        <span class="tile-qty">${esc(i.quantity || "")}</span>
+        ${i.sources.length > 1 ? `<span class="tile-merged" title="Aus ${i.sources.length} Einträgen">${i.sources.length}</span>` : ""}
+        ${!i.checked || i.have ? `<button class="tile-have ${i.have ? "on" : ""}" data-have-btn title="${i.have ? "Doch einkaufen" : "Bereits vorhanden"}" aria-label="${esc(i.name)}: ${i.have ? "doch einkaufen" : "bereits vorhanden"}"><ha-icon icon="${i.have ? "mdi:home" : "mdi:home-outline"}"></ha-icon></button>` : ""}
+        <button class="tile-more" data-more="${esc(i.key)}" title="Details" aria-label="Details zu ${esc(i.name)}"><ha-icon icon="mdi:dots-horizontal"></ha-icon></button>
+      </div>`;
+    };
+    const grid = (items, colorOf) => `<div class="tiles">${items.map((i) => tile(i, colorOf(i))).join("")}</div>`;
+    const header = (id, title, count, icon, color) => {
+      const collapsed = this._collapsed.has(id) && !this._search;
+      return [
+        collapsed,
+        `<button class="tile-head" data-toggle-cat="${esc(id)}" aria-expanded="${!collapsed}" ${color ? `style="--cat:${esc(color)}"` : ""}>
+          ${icon ? `<ha-icon icon="${icon}"></ha-icon>` : `<span class="dot" style="background:var(--cat)"></span>`}
+          <span>${title}</span><span class="cat-count">${count}</span>
+          <ha-icon class="chevron ${collapsed ? "" : "open"}" icon="mdi:chevron-down"></ha-icon>
+        </button>`,
+      ];
+    };
+
+    let html = "";
+    for (const cat of categories) {
+      const items = cat.items.filter((i) => this._visible(i) && openItem(i));
+      if (!items.length) continue;
+      const [collapsed, head] = header(cat.id, esc(cat.name), items.length, null, cat.color);
+      html += `<section class="tile-group">${head}${collapsed ? "" : grid(items, () => cat.color)}</section>`;
+    }
+    if (!html) {
+      html = `<div class="card empty"><ha-icon icon="mdi:cart-check"></ha-icon>
+        <p>${stats.total ? (this._search || this._filter !== "all" ? "Keine passenden Artikel." : "Alles erledigt.") : "Die Listen sind leer."}</p></div>`;
+    }
+    const all = categories.flatMap((c) => c.items.map((i) => ({ ...i, color: c.color }))).filter((i) => this._visible(i));
+    const bought = all.filter((i) => i.checked && !i.have && !keep(i));
+    const have = all.filter((i) => i.have);
+    for (const [id, title, icon, items] of [
+      ["__done", "Im Wagen", "mdi:cart-check", bought],
+      ["__have", "Bereits vorhanden", "mdi:home-outline", have],
+    ]) {
+      if (!items.length) continue;
+      const [collapsed, head] = header(id, title, items.length, icon);
+      html += `<section class="tile-group muted-group">${head}${collapsed ? "" : grid(items, (i) => i.color)}</section>`;
+    }
+    const hint = this._tilesHint && stats.open
+      ? `<p class="tile-hint">Antippen: gekauft · <ha-icon icon="mdi:home-outline"></ha-icon> vorhanden · gedrückt halten oder <ha-icon icon="mdi:dots-horizontal"></ha-icon>: Details</p>`
+      : "";
+    root.getElementById("list").innerHTML = hint + html + this._clearFooter(stats);
+  }
+
+  _findItem(key) {
+    for (const cat of this._data?.categories || []) {
+      const item = cat.items.find((i) => i.key === key);
+      if (item) return { item, color: cat.color };
+    }
+    return null;
+  }
+
+  _openSheet(key) {
+    this._sheet = key;
+    this._sheetOpenedAt = Date.now();
+    if (this._tilesHint) {
+      this._tilesHint = false;
+      this._saveUi();
+    }
+    this._render();
+  }
+
+  _renderSheet() {
+    const el = this.shadowRoot.getElementById("sheet");
+    const found = this._sheet && this._findItem(this._sheet);
+    if (!found) {
+      this._sheet = null;
+      el.innerHTML = "";
+      return;
+    }
+    const { item, color } = found;
+    const options = [`<option value="">Automatisch</option>`]
+      .concat(
+        (this._data.all_categories || []).map(
+          (c) => `<option value="${esc(c.id)}" ${item.category_overridden && c.id === item.category ? "selected" : ""}>${esc(c.name)}</option>`
+        )
+      )
+      .join("");
+    el.innerHTML = `<div class="sheet-backdrop" data-sheet-close></div>
+      <div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(item.name)}" style="--cat:${esc(color)}">
+        <div class="sheet-head">
+          <span class="sheet-emoji">${esc(item.emoji || "🛒")}</span>
+          <div class="sheet-title"><b>${esc(item.name)}</b><span>${esc(item.quantity || "ohne Mengenangabe")}</span></div>
+          <button class="icon-btn small" data-sheet-close title="Schließen"><ha-icon icon="mdi:close"></ha-icon></button>
+        </div>
+        <div class="sheet-actions">
+          <button class="sheet-btn primary-btn" data-sheet-check>${item.checked && !item.have ? `<ha-icon icon="mdi:undo"></ha-icon>Wieder auf die Liste` : `<ha-icon icon="mdi:cart-check"></ha-icon>Gekauft`}</button>
+          <button class="sheet-btn ${item.have ? "on" : ""}" data-sheet-have><ha-icon icon="${item.have ? "mdi:home" : "mdi:home-outline"}"></ha-icon>${item.have ? "Doch einkaufen" : "Bereits vorhanden"}</button>
+        </div>
+        ${this._breakdown(item)}
+        <div class="detail-actions">
+          <label>Kategorie <select data-category-for="${esc(item.key)}">${options}</select></label>
+          <button class="text-btn danger" data-remove="${esc(item.key)}"><ha-icon icon="mdi:delete-outline"></ha-icon>Löschen</button>
+        </div>
+      </div>`;
+  }
+
+  _onSheetClick(ev) {
+    const t = ev.target;
+    const close = () => {
+      this._sheet = null;
+      this._render();
+    };
+    // the finger that long-pressed is lifted onto the backdrop – don't close right away
+    if (Date.now() - (this._sheetOpenedAt || 0) < 450) return;
+    if (t.closest("[data-sheet-close]")) return close();
+    const found = this._sheet && this._findItem(this._sheet);
+    if (!found) return close();
+    const { item } = found;
+    if (t.closest("[data-sheet-check]")) {
+      const checked = !(item.checked && !item.have);
+      this._pending.add(item.key);
+      close();
+      this._ws({ type: "check", key: item.key, checked }, checked ? `„${item.name}“ gekauft` : "Wieder auf der Liste");
+    } else if (t.closest("[data-sheet-have]")) {
+      this._pending.add(item.key);
+      close();
+      this._ws({ type: "have", key: item.key, have: !item.have }, !item.have ? "Als vorhanden markiert" : "Wieder auf der Liste");
+    } else if (t.closest("[data-remove]")) {
+      close();
+      this._ws({ type: "remove", key: item.key }, (r) => (r?.hidden && !r?.removed ? "Cookidoo-Zutat ausgeblendet" : "Artikel entfernt"));
+    }
   }
 
   _breakdown(item) {
@@ -523,7 +728,7 @@ class ShoppingHelperPanel extends HTMLElement {
         ${item.quantity ? `<span class="qty">${esc(item.quantity)}</span>` : ""}
         ${
           showHave
-            ? `<button class="have-btn ${item.have ? "on" : ""}" data-have title="${item.have ? "Doch einkaufen" : "Bereits vorhanden"}" aria-label="${esc(item.name)}: ${item.have ? "doch einkaufen" : "bereits vorhanden"}"><ha-icon icon="${item.have ? "mdi:home" : "mdi:home-outline"}"></ha-icon></button>`
+            ? `<button class="have-btn ${item.have ? "on" : ""}" data-have-btn title="${item.have ? "Doch einkaufen" : "Bereits vorhanden"}" aria-label="${esc(item.name)}: ${item.have ? "doch einkaufen" : "bereits vorhanden"}"><ha-icon icon="${item.have ? "mdi:home" : "mdi:home-outline"}"></ha-icon></button>`
             : ""
         }
         <button class="icon-btn small more" data-more="${esc(item.key)}" title="Details" aria-expanded="${expanded}"><ha-icon icon="mdi:chevron-down"></ha-icon></button>
@@ -911,6 +1116,74 @@ const STYLES = `
   .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
   .dot.cookidoo { background: var(--sh-cookidoo); }
   .dot.own { background: var(--sh-own); }
+  /* tile layout */
+  .tile-hint { margin: -2px 2px 10px; font-size: 12px; color: var(--sh-muted); --mdc-icon-size: 14px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .tile-group { margin-bottom: 14px; }
+  .tile-head {
+    display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: none; cursor: pointer;
+    padding: 4px 2px 8px; font-size: 13px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase;
+    color: var(--sh-muted); --mdc-icon-size: 16px; text-align: left;
+  }
+  .tile-head .cat-count { margin-left: auto; text-transform: none; font-weight: 500; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .tile {
+    position: relative; aspect-ratio: 1 / 1; max-width: 100%; border-radius: 14px; cursor: pointer; user-select: none;
+    -webkit-user-select: none; -webkit-touch-callout: none;
+    background: color-mix(in srgb, var(--cat) 20%, var(--sh-card));
+    border: 1px solid color-mix(in srgb, var(--cat) 35%, transparent);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 8px 6px 6px;
+    text-align: center; transition: transform .12s, opacity .2s, background .2s; outline-offset: 2px;
+  }
+  .tile:active { transform: scale(.96); }
+  .tile:focus-visible { outline: 2px solid var(--primary-color); }
+  .tile-emoji { font-size: 34px; line-height: 1.1; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+  .tile-name {
+    font-size: 13px; font-weight: 500; line-height: 1.2; max-width: 100%;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere;
+  }
+  .tile-qty { font-size: 11px; color: var(--sh-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; min-height: 13px; font-variant-numeric: tabular-nums; }
+  .tile-merged {
+    position: absolute; left: 6px; top: 6px; min-width: 18px; height: 18px; border-radius: 9px; padding: 0 5px;
+    background: var(--sh-card); color: var(--sh-muted); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center;
+  }
+  .tile-have, .tile-more {
+    position: absolute; top: 2px; width: 28px; height: 28px; border-radius: 50%; border: none; background: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: var(--sh-muted); --mdc-icon-size: 16px;
+  }
+  .tile-have { right: 2px; }
+  .tile-have.on { color: var(--primary-color); }
+  .tile-more { right: 2px; top: auto; bottom: 2px; opacity: 0; }
+  .tile:hover .tile-more, .tile:focus-within .tile-more { opacity: 1; }
+  @media (hover: none) { .tile-more { display: none; } }
+  .tile.partial { background: linear-gradient(135deg, color-mix(in srgb, var(--cat) 34%, var(--sh-card)) 50%, color-mix(in srgb, var(--cat) 14%, var(--sh-card)) 50%); }
+  .tile.pending { opacity: .45; }
+  .muted-group .tile { background: var(--sh-card); border-color: var(--sh-divider); }
+  .muted-group .tile-emoji { filter: grayscale(.85); opacity: .7; }
+  .muted-group .tile-name { color: var(--sh-muted); }
+  .tile.checked:not(.have) .tile-name { text-decoration: line-through; }
+  /* details sheet (tile layout) */
+  .sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 10; }
+  .sheet {
+    position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); z-index: 11;
+    width: min(560px, 100%); max-height: 85vh; overflow-y: auto;
+    background: var(--sh-card); border-radius: 18px 18px 0 0; box-shadow: 0 -4px 24px rgba(0,0,0,.25);
+    padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+  .sheet-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .sheet-emoji {
+    width: 52px; height: 52px; border-radius: 14px; font-size: 30px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    background: color-mix(in srgb, var(--cat) 20%, var(--sh-card)); font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  }
+  .sheet-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .sheet-title b { font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+  .sheet-title span { font-size: 14px; color: var(--sh-muted); }
+  .sheet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .sheet-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--sh-divider); background: none; font-size: 14px; --mdc-icon-size: 18px;
+  }
+  .sheet-btn.primary-btn { background: var(--primary-color); border-color: var(--primary-color); color: var(--text-primary-color, #fff); }
+  .sheet-btn.on { color: var(--primary-color); border-color: var(--primary-color); }
   /* categories */
   .category { margin-bottom: 10px; overflow: hidden; }
   .cat-header {

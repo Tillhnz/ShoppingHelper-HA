@@ -10,6 +10,7 @@
     {
      "key": "banane",
      "name": "Bananen",
+     "emoji": "🍌",
      "category": "produce",
      "category_overridden": false,
      "quantity": "",
@@ -41,6 +42,7 @@
     {
      "key": "basilikum",
      "name": "Basilikum",
+     "emoji": "🌿",
      "category": "produce",
      "category_overridden": false,
      "quantity": "1 Bund",
@@ -77,6 +79,7 @@
     {
      "key": "knoblauchzehe",
      "name": "Knoblauchzehen",
+     "emoji": "🧄",
      "category": "produce",
      "category_overridden": false,
      "quantity": "3 Stück",
@@ -113,6 +116,7 @@
     {
      "key": "zwiebel",
      "name": "Zwiebel",
+     "emoji": "🧅",
      "category": "produce",
      "category_overridden": false,
      "quantity": "2 Stück",
@@ -174,6 +178,7 @@
     {
      "key": "brötchen",
      "name": "Brötchen",
+     "emoji": "🥖",
      "category": "bakery",
      "category_overridden": false,
      "quantity": "6 Stück",
@@ -221,6 +226,7 @@
     {
      "key": "butter",
      "name": "Butter",
+     "emoji": "🧈",
      "category": "dairy",
      "category_overridden": false,
      "quantity": "120 g",
@@ -257,6 +263,7 @@
     {
      "key": "ei",
      "name": "Eier",
+     "emoji": "🥚",
      "category": "dairy",
      "category_overridden": false,
      "quantity": "10 Stück",
@@ -293,6 +300,7 @@
     {
      "key": "milch",
      "name": "Milch",
+     "emoji": "🥛",
      "category": "dairy",
      "category_overridden": false,
      "quantity": "2,3 l",
@@ -343,6 +351,7 @@
     {
      "key": "parmesan",
      "name": "Parmesan",
+     "emoji": "🧀",
      "category": "dairy",
      "category_overridden": false,
      "quantity": "60 g",
@@ -379,6 +388,7 @@
     {
      "key": "joghurt",
      "name": "Joghurt",
+     "emoji": "🍶",
      "category": "dairy",
      "category_overridden": false,
      "quantity": "",
@@ -421,6 +431,7 @@
     {
      "key": "hähnchenbrustfilet",
      "name": "Hähnchenbrustfilet",
+     "emoji": "🍗",
      "category": "meat",
      "category_overridden": false,
      "quantity": "400 g",
@@ -468,6 +479,7 @@
     {
      "key": "basmatireis",
      "name": "Basmatireis",
+     "emoji": "🍚",
      "category": "pasta",
      "category_overridden": false,
      "quantity": "200 g",
@@ -504,6 +516,7 @@
     {
      "key": "spaghetti",
      "name": "Spaghetti",
+     "emoji": "🍝",
      "category": "pasta",
      "category_overridden": false,
      "quantity": "500 g",
@@ -551,6 +564,7 @@
     {
      "key": "mehl",
      "name": "Mehl",
+     "emoji": "🌾",
      "category": "baking",
      "category_overridden": false,
      "quantity": "1,25 kg",
@@ -612,6 +626,7 @@
     {
      "key": "currypaste",
      "name": "Currypaste, rot",
+     "emoji": "🍛",
      "category": "spices",
      "category_overridden": false,
      "quantity": "2 EL",
@@ -648,6 +663,7 @@
     {
      "key": "salz",
      "name": "Salz",
+     "emoji": "🧂",
      "category": "spices",
      "category_overridden": false,
      "quantity": "1 Prise",
@@ -695,6 +711,7 @@
     {
      "key": "olivenöl",
      "name": "Olivenöl",
+     "emoji": "🫒",
      "category": "oils",
      "category_overridden": false,
      "quantity": "2 EL",
@@ -731,6 +748,7 @@
     {
      "key": "tomate",
      "name": "Tomaten, passiert",
+     "emoji": "🍅",
      "category": "oils",
      "category_overridden": false,
      "quantity": "400 g",
@@ -778,6 +796,7 @@
     {
      "key": "kokosmilch",
      "name": "Kokosmilch",
+     "emoji": "🥥",
      "category": "canned",
      "category_overridden": false,
      "quantity": "400 g",
@@ -825,6 +844,7 @@
     {
      "key": "kaffee",
      "name": "Kaffee",
+     "emoji": "☕",
      "category": "drinks",
      "category_overridden": false,
      "quantity": "",
@@ -856,6 +876,7 @@
     {
      "key": "mineralwasser",
      "name": "Mineralwasser",
+     "emoji": "💧",
      "category": "drinks",
      "category_overridden": false,
      "quantity": "6 Stück",
@@ -903,6 +924,7 @@
     {
      "key": "toilettenpapier",
      "name": "Toilettenpapier",
+     "emoji": "🧻",
      "category": "drugstore",
      "category_overridden": false,
      "quantity": "",
@@ -945,6 +967,7 @@
     {
      "key": "küchenrolle",
      "name": "Küchenrolle",
+     "emoji": "🧻",
      "category": "household",
      "category_overridden": false,
      "quantity": "",
@@ -976,6 +999,7 @@
     {
      "key": "spülmittel",
      "name": "Spülmittel",
+     "emoji": "🧽",
      "category": "household",
      "category_overridden": false,
      "quantity": "",
@@ -1275,7 +1299,8 @@
    "interval": 7,
    "days_since": 11,
    "reason": "fällig",
-   "score": 6.139
+   "score": 6.139,
+   "emoji": "🍶"
   },
   {
    "key": "käse",
@@ -1285,7 +1310,8 @@
    "interval": 10,
    "days_since": 16,
    "reason": "fällig",
-   "score": 5.736
+   "score": 5.736,
+   "emoji": "🧀"
   },
   {
    "key": "sahne",
@@ -1295,7 +1321,8 @@
    "interval": 12,
    "days_since": 16,
    "reason": "fällig",
-   "score": 4.429
+   "score": 4.429,
+   "emoji": "🥛"
   },
   {
    "key": "knoblauch",
@@ -1305,7 +1332,8 @@
    "interval": 18,
    "days_since": 24,
    "reason": "fällig",
-   "score": 3.743
+   "score": 3.743,
+   "emoji": "🧄"
   },
   {
    "key": "reis",
@@ -1315,7 +1343,8 @@
    "interval": 20,
    "days_since": 18,
    "reason": "bald fällig",
-   "score": 2.527
+   "score": 2.527,
+   "emoji": "🍚"
   }
  ],
  "statistics": {
@@ -1442,7 +1471,8 @@
     "count": 17,
     "interval": 7,
     "last": "2026-10-19",
-    "category": "dairy"
+    "category": "dairy",
+    "emoji": "🥛"
    },
    {
     "key": "banane",
@@ -1450,7 +1480,8 @@
     "count": 15,
     "interval": 8,
     "last": "2026-10-14",
-    "category": "produce"
+    "category": "produce",
+    "emoji": "🍌"
    },
    {
     "key": "joghurt",
@@ -1458,7 +1489,8 @@
     "count": 14,
     "interval": 7,
     "last": "2026-10-14",
-    "category": "dairy"
+    "category": "dairy",
+    "emoji": "🍶"
    },
    {
     "key": "tomate",
@@ -1466,7 +1498,8 @@
     "count": 14,
     "interval": 8,
     "last": "2026-10-14",
-    "category": "produce"
+    "category": "produce",
+    "emoji": "🍅"
    },
    {
     "key": "mineralwasser",
@@ -1474,7 +1507,8 @@
     "count": 13,
     "interval": 9,
     "last": "2026-10-19",
-    "category": "drinks"
+    "category": "drinks",
+    "emoji": "💧"
    },
    {
     "key": "apfel",
@@ -1482,7 +1516,8 @@
     "count": 13,
     "interval": 8,
     "last": "2026-10-19",
-    "category": "produce"
+    "category": "produce",
+    "emoji": "🍎"
    },
    {
     "key": "brötchen",
@@ -1490,7 +1525,8 @@
     "count": 12,
     "interval": 9,
     "last": "2026-10-14",
-    "category": "bakery"
+    "category": "bakery",
+    "emoji": "🥖"
    },
    {
     "key": "ei",
@@ -1498,7 +1534,8 @@
     "count": 11,
     "interval": 10,
     "last": "2026-10-14",
-    "category": "dairy"
+    "category": "dairy",
+    "emoji": "🥚"
    },
    {
     "key": "käse",
@@ -1506,7 +1543,8 @@
     "count": 11,
     "interval": 10,
     "last": "2026-10-09",
-    "category": "dairy"
+    "category": "dairy",
+    "emoji": "🧀"
    },
    {
     "key": "zwiebel",
@@ -1514,7 +1552,8 @@
     "count": 11,
     "interval": 11,
     "last": "2026-10-14",
-    "category": "produce"
+    "category": "produce",
+    "emoji": "🧅"
    },
    {
     "key": "butter",
@@ -1522,7 +1561,8 @@
     "count": 10,
     "interval": 11,
     "last": "2026-10-07",
-    "category": "dairy"
+    "category": "dairy",
+    "emoji": "🧈"
    },
    {
     "key": "sahne",
@@ -1530,7 +1570,8 @@
     "count": 9,
     "interval": 12,
     "last": "2026-10-09",
-    "category": "dairy"
+    "category": "dairy",
+    "emoji": "🥛"
    }
   ]
  },

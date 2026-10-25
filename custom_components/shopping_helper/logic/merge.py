@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 
 from .categories import CATEGORY_BY_ID, FALLBACK_CATEGORY, categorize
+from .icons import emoji_for
 from .parser import format_quantities, normalize_key, parse_entry, sum_quantities
 
 STATUS_DONE = "completed"
@@ -68,6 +69,7 @@ def merge_items(
             {
                 "key": key,
                 "name": name,
+                "emoji": emoji_for(name, key, category),
                 "category": category,
                 "category_overridden": key in overrides,
                 "quantity": format_quantities(quantities),
