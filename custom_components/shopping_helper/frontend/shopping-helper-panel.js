@@ -120,15 +120,18 @@ class ShoppingHelperPanel extends HTMLElement {
       <div class="tabs">
         <button class="tab active" data-tab="list"><ha-icon icon="mdi:format-list-checks"></ha-icon>Einkaufsliste</button>
         <button class="tab" data-tab="stats"><ha-icon icon="mdi:chart-donut"></ha-icon>Übersicht</button>
+        <button class="tab" data-tab="insights"><ha-icon icon="mdi:chart-timeline-variant"></ha-icon>Statistik</button>
       </div>
       <div class="content">
         <section id="list-tab">
           <form class="add card" id="add-form" autocomplete="off">
             <ha-icon icon="mdi:plus-circle-outline" class="add-icon"></ha-icon>
-            <input id="add-input" placeholder="Artikel hinzufügen, z. B. „2 l Milch“" enterkeyhint="done" />
+            <input id="add-input" list="known-names" placeholder="Artikel hinzufügen, z. B. „2 l Milch“" enterkeyhint="done" />
+            <datalist id="known-names"></datalist>
             <select id="add-list" title="Ziel-Liste"></select>
             <button type="submit" class="primary">Hinzufügen</button>
           </form>
+          <div id="suggestions"></div>
           <div class="toolbar">
             <div class="chips">
               <button class="chip active" data-filter="all">Alle</button>
@@ -144,6 +147,7 @@ class ShoppingHelperPanel extends HTMLElement {
           <div id="list"></div>
         </section>
         <section id="stats-tab" hidden></section>
+        <section id="insights-tab" hidden></section>
       </div>`;
 
     this._menuButton = document.createElement("ha-menu-button");
@@ -158,6 +162,7 @@ class ShoppingHelperPanel extends HTMLElement {
         root.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b === btn));
         root.getElementById("list-tab").hidden = this._tab !== "list";
         root.getElementById("stats-tab").hidden = this._tab !== "stats";
+        root.getElementById("insights-tab").hidden = this._tab !== "insights";
         this._render();
       })
     );
@@ -202,6 +207,7 @@ class ShoppingHelperPanel extends HTMLElement {
     root.getElementById("stats-tab").addEventListener("click", (ev) => {
       this._onClearClick(ev);
     });
+    root.getElementById("suggestions").addEventListener("click", (ev) => this._onSuggestionClick(ev));
   }
 
   _onListClick(ev) {
@@ -316,8 +322,66 @@ class ShoppingHelperPanel extends HTMLElement {
       return;
     }
     this._renderListSelect();
+    this._renderKnownNames();
     if (this._tab === "list") this._renderList();
-    else this._renderStats();
+    else if (this._tab === "stats") this._renderStats();
+    else this._renderInsights();
+  }
+
+  _renderKnownNames() {
+    const list = this.shadowRoot.getElementById("known-names");
+    const names = this._data.known_names || [];
+    const sig = names.join("|");
+    if (list.dataset.sig === sig) return;
+    list.innerHTML = names.map((n) => `<option value="${esc(n)}"></option>`).join("");
+    list.dataset.sig = sig;
+  }
+
+  /* ------------------------------------------------------------ suggestions */
+  _renderSuggestions() {
+    const el = this.shadowRoot.getElementById("suggestions");
+    const items = (this._data.suggestions || []).filter((s) => !this._pending.has("sugg:" + s.key));
+    if (!items.length || this._search) {
+      el.innerHTML = "";
+      return;
+    }
+    const colors = Object.fromEntries((this._data.all_categories || []).map((c) => [c.id, c.color]));
+    const detail = (s) => {
+      if (s.interval) return `${s.reason} · alle ~${s.interval} Tage`;
+      return s.reason;
+    };
+    el.innerHTML = `<div class="suggest">
+      <div class="suggest-title"><ha-icon icon="mdi:lightbulb-on-outline"></ha-icon>Vorschläge</div>
+      <div class="suggest-row">${items
+        .map(
+          (s) => `<div class="suggestion ${s.reason === "fällig" ? "due" : ""}" style="--cat:${esc(colors[s.category] || "#9e9e9e")}">
+            <button class="sugg-add" data-sugg-add="${esc(s.key)}" data-name="${esc(s.name)}" title="${esc(s.name)} hinzufügen">
+              <ha-icon icon="mdi:plus"></ha-icon>
+              <span class="sugg-text"><span class="sugg-name">${esc(s.name)}</span><span class="sugg-detail">${esc(detail(s))}</span></span>
+            </button>
+            <button class="sugg-x" data-sugg-snooze="${esc(s.key)}" title="Eine Woche nicht vorschlagen"><ha-icon icon="mdi:close"></ha-icon></button>
+          </div>`
+        )
+        .join("")}</div>
+    </div>`;
+  }
+
+  _onSuggestionClick(ev) {
+    const add = ev.target.closest("[data-sugg-add]");
+    if (add) {
+      const name = add.dataset.name;
+      const entity_id = this.shadowRoot.getElementById("add-list").value || undefined;
+      this._pending.add("sugg:" + add.dataset.suggAdd);
+      this._renderSuggestions();
+      this._ws({ type: "add", name, entity_id }, `„${name}“ hinzugefügt`);
+      return;
+    }
+    const snooze = ev.target.closest("[data-sugg-snooze]");
+    if (snooze) {
+      this._pending.add("sugg:" + snooze.dataset.suggSnooze);
+      this._renderSuggestions();
+      this._ws({ type: "snooze", key: snooze.dataset.suggSnooze, days: 7 }, "Eine Woche lang nicht vorgeschlagen");
+    }
   }
 
   _renderListSelect() {
@@ -344,6 +408,7 @@ class ShoppingHelperPanel extends HTMLElement {
   _renderList() {
     const { categories = [], stats = {}, all_categories = [] } = this._data;
     const root = this.shadowRoot;
+    this._renderSuggestions();
 
     root.getElementById("progress").innerHTML = stats.total
       ? `<div class="progress-wrap">
@@ -426,7 +491,7 @@ class ShoppingHelperPanel extends HTMLElement {
 
   /* ------------------------------------------------------------ statistics */
   _renderStats() {
-    const { categories = [], stats = {}, history = {} } = this._data;
+    const { categories = [], stats = {} } = this._data;
     const openCats = categories.filter((c) => c.open > 0);
     const el = this.shadowRoot.getElementById("stats-tab");
     el.innerHTML = `
@@ -447,24 +512,163 @@ class ShoppingHelperPanel extends HTMLElement {
           <h3 class="mt">Fortschritt</h3>
           ${this._ring(stats.progress || 0)}
         </div>
+      </div>
+      ${this._clearFooter(stats)}
+      <p class="muted small center">Aktualisiert: ${esc(new Date(this._data.updated).toLocaleTimeString("de-DE"))}</p>`;
+  }
+
+  /* ------------------------------------------------------------ insights (history) */
+  _renderInsights() {
+    const st = this._data.statistics || {};
+    const k = st.kpis || {};
+    const history = this._data.history || {};
+    const el = this.shadowRoot.getElementById("insights-tab");
+    if (!k.total_purchases) {
+      el.innerHTML = `<div class="card empty">
+        <ha-icon icon="mdi:chart-timeline-variant"></ha-icon>
+        <p>Die Statistik füllt sich, sobald du Artikel abhakst.<br>Jeder abgehakte Artikel zählt als Einkauf.</p>
+      </div>
+      <div class="card chart-card"><h3>Letzte 14 Tage</h3>${this._dailyChart(history.daily || [])}</div>`;
+      return;
+    }
+    const catMeta = Object.fromEntries((this._data.all_categories || []).map((c) => [c.id, c]));
+    const cats = Object.entries(st.categories || {}).map(([id, count]) => ({
+      name: catMeta[id]?.name || id,
+      color: catMeta[id]?.color || "#9e9e9e",
+      open: count,
+    }));
+    const catTotal = cats.reduce((a, c) => a + c.open, 0);
+    const since = new Date(k.tracking_since + "T12:00:00").toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
+    el.innerHTML = `
+      <div class="kpis">
+        ${this._kpi("mdi:cart-check", k.bought_30d, "Gekauft (30 Tage)")}
+        ${this._kpi("mdi:store-outline", k.trips_30d, "Einkäufe (30 Tage)")}
+        ${this._kpi("mdi:basket-outline", String(k.avg_per_trip).replace(".", ","), "Ø Artikel pro Einkauf")}
+        ${this._kpi("mdi:calendar-star", k.favorite_weekday || "–", "Häufigster Einkaufstag")}
+      </div>
+      <div class="grid">
+        <div class="card chart-card wide">
+          <h3>Gekaufte Artikel pro Woche</h3>
+          ${this._weeklyChart(st.weekly || [])}
+        </div>
+        <div class="card chart-card">
+          <h3>Einkaufstage</h3>
+          <p class="muted small sub">Gekaufte Artikel nach Wochentag, letzte 90 Tage</p>
+          ${this._weekdayChart(st.weekday || [])}
+        </div>
+        <div class="card chart-card">
+          <h3>Woher die Artikel kommen</h3>
+          ${this._sourceSplit(st.sources || {})}
+          <h3 class="mt">Gesamt</h3>
+          <div class="facts">
+            <div><b>${k.total_purchases}</b><span>Käufe seit ${esc(since)}</span></div>
+            <div><b>${k.distinct_items}</b><span>verschiedene Artikel</span></div>
+          </div>
+        </div>
+        <div class="card chart-card wide">
+          <h3>Gekauft nach Kategorie</h3>
+          <p class="muted small sub">Letzte 90 Tage</p>
+          ${cats.length ? this._donut(cats, catTotal, "gekauft") : `<p class="muted">Noch keine Daten.</p>`}
+        </div>
+        <div class="card chart-card wide">
+          <h3>Am häufigsten gekauft</h3>
+          ${this._purchaseTable(st.top || [], catMeta)}
+        </div>
         <div class="card chart-card wide">
           <h3>Letzte 14 Tage</h3>
           ${this._dailyChart(history.daily || [])}
         </div>
-        <div class="card chart-card wide">
-          <h3>Häufig auf der Liste</h3>
-          ${this._topList(history.top || [])}
+      </div>`;
+  }
+
+  _barChart(values, labels, { highlightLast = false, title = (v) => v } = {}) {
+    const w = 560, h = 160, pad = 26, bottom = 22, top = 14;
+    const max = Math.max(...values, 1);
+    const step = (w - pad) / values.length;
+    const bw = Math.min(28, step * 0.62);
+    const y = (v) => h - bottom - (v / max) * (h - bottom - top);
+    const ticks = [0, Math.round(max / 2), max].filter((v, i, a) => a.indexOf(v) === i);
+    const grid = ticks
+      .map((v) => `<line x1="${pad}" x2="${w}" y1="${y(v)}" y2="${y(v)}" class="grid-line"/><text x="${pad - 6}" y="${y(v) + 4}" text-anchor="end" class="axis">${v}</text>`)
+      .join("");
+    const bars = values
+      .map((v, i) => {
+        const x = pad + i * step + step / 2;
+        const cls = highlightLast && i === values.length - 1 ? "bar-current" : "bar-bought";
+        return `<g><rect x="${x - bw / 2}" y="${y(v)}" width="${bw}" height="${Math.max(h - bottom - y(v), 0)}" rx="4" class="${cls}"><title>${esc(title(v, i))}</title></rect>
+          ${v ? `<text x="${x}" y="${y(v) - 4}" text-anchor="middle" class="bar-num">${v}</text>` : ""}
+          <text x="${x}" y="${h - 6}" text-anchor="middle" class="axis">${esc(labels[i])}</text></g>`;
+      })
+      .join("");
+    return `<svg viewBox="0 0 ${w} ${h}" class="daily" preserveAspectRatio="xMidYMid meet">${grid}${bars}</svg>`;
+  }
+
+  _weeklyChart(weeks) {
+    if (!weeks.length) return `<p class="muted">Noch keine Daten.</p>`;
+    const labels = weeks.map((w, i) => {
+      const d = new Date(w.week + "T12:00:00");
+      return i % 2 === (weeks.length - 1) % 2 ? `${d.getDate()}.${d.getMonth() + 1}.` : "";
+    });
+    return (
+      this._barChart(weeks.map((w) => w.bought), labels, {
+        highlightLast: true,
+        title: (v, i) => `Woche ab ${weeks[i].week}: ${v} gekauft, ${weeks[i].added} hinzugefügt`,
+      }) + `<div class="bar-legend"><span><i class="bar-key bought"></i>gekauft</span><span><i class="bar-key current"></i>diese Woche</span></div>`
+    );
+  }
+
+  _weekdayChart(days) {
+    const max = Math.max(...days.map((d) => d.bought), 1);
+    return `<div class="weekday">${days
+      .map(
+        (d) => `<div class="wd ${d.bought === max && d.bought ? "top" : ""}" title="${esc(d.day)}: ${d.bought} Artikel">
+          <div class="wd-track"><div class="wd-bar" style="height:${(d.bought / max) * 100}%"></div></div>
+          <span class="wd-num">${d.bought}</span><span class="wd-day">${esc(d.day)}</span>
+        </div>`
+      )
+      .join("")}</div>`;
+  }
+
+  _sourceSplit(src) {
+    const c = src.cookidoo || 0, o = src.own || 0, t = c + o || 1;
+    const cp = Math.round((c / t) * 100);
+    return `<div class="split">
+        <div class="split-bar"><div class="split-c" style="width:${cp}%"></div><div class="split-o" style="width:${100 - cp}%"></div></div>
+        <div class="split-legend">
+          <span><span class="dot cookidoo"></span>Cookidoo <b>${cp}%</b> <span class="muted">(${c})</span></span>
+          <span><span class="dot own"></span>Eigene Listen <b>${100 - cp}%</b> <span class="muted">(${o})</span></span>
         </div>
-      </div>
-      ${this._clearFooter(stats)}
-      <p class="muted small center">Aktualisiert: ${esc(new Date(this._data.updated).toLocaleTimeString("de-DE"))}</p>`;
+      </div>`;
+  }
+
+  _purchaseTable(top, catMeta) {
+    if (!top.length) return `<p class="muted">Noch keine Daten.</p>`;
+    const max = Math.max(...top.map((t) => t.count), 1);
+    const today = new Date(new Date().toDateString());
+    const ago = (iso) => {
+      if (!iso) return "–";
+      const days = Math.round((today - new Date(iso + "T00:00:00")) / 86400000);
+      return days <= 0 ? "heute" : days === 1 ? "gestern" : `vor ${days} Tagen`;
+    };
+    return `<div class="ptable">${top
+      .map(
+        (t) => `<div class="prow" style="--cat:${esc(catMeta[t.category]?.color || "#9e9e9e")}">
+          <span class="swatch"></span>
+          <span class="pname">${esc(t.name)}</span>
+          <span class="ptrack"><span style="width:${(t.count / max) * 100}%"></span></span>
+          <span class="pcount">${t.count}×</span>
+          <span class="pmeta">${t.interval ? `alle ~${t.interval} Tage` : "&nbsp;"}</span>
+          <span class="pmeta">${ago(t.last)}</span>
+        </div>`
+      )
+      .join("")}</div>`;
   }
 
   _kpi(icon, value, label) {
     return `<div class="card kpi"><ha-icon icon="${icon}"></ha-icon><div><div class="kpi-value">${esc(value)}</div><div class="kpi-label">${label}</div></div></div>`;
   }
 
-  _donut(cats, total) {
+  _donut(cats, total, label = "offen") {
     const r = 70;
     const c = 2 * Math.PI * r;
     let offset = 0;
@@ -486,10 +690,10 @@ class ShoppingHelperPanel extends HTMLElement {
       )
       .join("");
     return `<div class="donut-wrap">
-      <svg viewBox="0 0 180 180" class="donut" role="img" aria-label="Offene Artikel nach Kategorie">
+      <svg viewBox="0 0 180 180" class="donut" role="img" aria-label="Verteilung nach Kategorie">
         ${arcs}
         <text x="90" y="88" text-anchor="middle" class="donut-value">${total}</text>
-        <text x="90" y="108" text-anchor="middle" class="donut-label">offen</text>
+        <text x="90" y="108" text-anchor="middle" class="donut-label">${esc(label)}</text>
       </svg>
       <ul class="legend">${legend}</ul>
     </div>`;
@@ -774,8 +978,70 @@ const STYLES = `
   .top-name { width: 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .top-track { flex: 1; height: 8px; border-radius: 4px; background: var(--secondary-background-color, rgba(127,127,127,.1)); overflow: hidden; }
   .top-track span { display: block; height: 100%; background: var(--primary-color); border-radius: 4px; opacity: .8; }
+  /* suggestions */
+  .suggest { margin: -2px 0 14px; }
+  .suggest-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--sh-muted); margin: 0 2px 8px; --mdc-icon-size: 16px; }
+  .suggest-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+  .suggestion {
+    display: flex; align-items: stretch; flex-shrink: 0; border-radius: 12px; overflow: hidden;
+    background: var(--sh-card); border: 1px solid var(--sh-divider);
+  }
+  .suggestion.due { border-color: color-mix(in srgb, var(--cat) 55%, transparent); }
+  .sugg-add {
+    display: flex; align-items: center; gap: 8px; background: none; border: none; cursor: pointer;
+    padding: 7px 4px 7px 10px; text-align: left; --mdc-icon-size: 18px;
+  }
+  .sugg-add ha-icon { color: var(--cat); }
+  .sugg-add:hover, .sugg-x:hover { background: rgba(127,127,127,.1); }
+  .sugg-text { display: flex; flex-direction: column; line-height: 1.25; }
+  .sugg-name { font-size: 14px; font-weight: 500; white-space: nowrap; }
+  .sugg-detail { font-size: 11px; color: var(--sh-muted); white-space: nowrap; }
+  .suggestion.due .sugg-detail { color: var(--cat); }
+  .sugg-x { background: none; border: none; cursor: pointer; color: var(--sh-muted); padding: 0 8px; --mdc-icon-size: 16px; }
+  /* insights */
+  .sub { margin: -8px 0 12px; }
+  .bar-bought { fill: color-mix(in srgb, var(--primary-color) 55%, transparent); }
+  .bar-current { fill: var(--primary-color); }
+  .bar-num { font-size: 10px; fill: var(--sh-muted); font-variant-numeric: tabular-nums; }
+  .bar-key.bought { background: color-mix(in srgb, var(--primary-color) 55%, transparent); }
+  .bar-key.current { background: var(--primary-color); }
+  .weekday { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; align-items: end; height: 150px; }
+  .wd { display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
+  .wd-track { flex: 1; width: 100%; max-width: 30px; display: flex; align-items: flex-end; border-radius: 6px; background: var(--secondary-background-color, rgba(127,127,127,.1)); overflow: hidden; }
+  .wd-bar { width: 100%; background: color-mix(in srgb, var(--primary-color) 55%, transparent); border-radius: 6px; min-height: 2px; }
+  .wd.top .wd-bar { background: var(--primary-color); }
+  .wd-num { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .wd-day { font-size: 12px; color: var(--sh-muted); }
+  .split-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--secondary-background-color, rgba(127,127,127,.1)); }
+  .split-c { background: var(--sh-cookidoo); }
+  .split-o { background: var(--sh-own); }
+  .split-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 13px; }
+  .split-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+  .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .facts div { display: flex; flex-direction: column; }
+  .facts b { font-size: 22px; font-variant-numeric: tabular-nums; }
+  .facts span { font-size: 12px; color: var(--sh-muted); }
+  .ptable { display: flex; flex-direction: column; }
+  .prow {
+    display: grid; grid-template-columns: 10px minmax(90px, 1.2fr) 2fr 44px 96px 92px; gap: 10px; align-items: center;
+    padding: 7px 0; border-top: 1px solid var(--sh-divider); font-size: 14px;
+  }
+  .prow:first-child { border-top: none; }
+  .prow .swatch { background: var(--cat); }
+  .pname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ptrack { height: 8px; border-radius: 4px; background: var(--secondary-background-color, rgba(127,127,127,.1)); overflow: hidden; }
+  .ptrack span { display: block; height: 100%; background: var(--cat); opacity: .85; border-radius: 4px; }
+  .pcount { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  .pmeta { font-size: 12px; color: var(--sh-muted); white-space: nowrap; }
+  @media (max-width: 700px) {
+    .prow { grid-template-columns: 10px 1fr 40px; row-gap: 2px; }
+    .prow .ptrack { grid-column: 2 / 4; grid-row: 2; }
+    .prow .pmeta { grid-column: 2 / 4; }
+    .prow .pmeta + .pmeta { display: none; }
+  }
   @media (max-width: 700px) {
     .content { padding: 10px; }
+    .tab { padding: 10px 10px 12px; font-size: 14px; gap: 4px; }
     .kpis { grid-template-columns: repeat(2, 1fr); }
     .grid, .top { grid-template-columns: 1fr; }
     .add { flex-wrap: wrap; }

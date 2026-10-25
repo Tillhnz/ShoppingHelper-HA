@@ -145,7 +145,7 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._prune_hidden():
             self._schedule_save()
         today = dt_util.now().date().isoformat()
-        if self.history.update(sources, today):
+        if self.history.update(sources, today, self.overrides):
             self._schedule_save()
         return self._build(lists_meta)
 
@@ -155,7 +155,17 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         result = merge_items(visible, order, self.overrides)
         result["stats"]["hidden"] = len(self._sources) - len(visible)
         result["lists"] = lists_meta if lists_meta is not None else (self.data or {}).get("lists", [])
-        result["history"] = self.history.export(dt_util.now().date().isoformat())
+        today = dt_util.now().date().isoformat()
+        open_keys = {
+            item["key"]
+            for category in result["categories"]
+            for item in category["items"]
+            if not item["checked"]
+        }
+        result["history"] = self.history.export(today)
+        result["suggestions"] = self.history.suggestions(today, open_keys)
+        result["statistics"] = self.history.statistics(today)
+        result["known_names"] = self.history.names()
         result["updated"] = dt_util.utcnow().isoformat()
         return result
 
@@ -248,6 +258,12 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             removed, hidden = removed + r, hidden + h
         await self.async_refresh()
         return {"removed": removed, "hidden": hidden}
+
+    async def async_snooze(self, key: str, days: int = 7) -> None:
+        """Hide a suggestion for a while."""
+        self.history.snooze(key, dt_util.now().date().isoformat(), days)
+        self._schedule_save()
+        self.async_set_updated_data(self._build())
 
     async def async_set_category(self, key: str, category: str | None) -> None:
         if category and category not in CATEGORY_BY_ID:

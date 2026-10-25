@@ -105,6 +105,19 @@ async def ws_set_category(hass: HomeAssistant, connection, msg) -> None:
         await _run(connection, msg, coordinator.async_set_category(msg["key"], msg.get("category")))
 
 
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/snooze",
+        vol.Required("key"): str,
+        vol.Optional("days"): int,
+    }
+)
+@websocket_api.async_response
+async def ws_snooze(hass: HomeAssistant, connection, msg) -> None:
+    if coordinator := _get(hass, connection, msg):
+        await _run(connection, msg, coordinator.async_snooze(msg["key"], msg.get("days", 7)))
+
+
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/clear_completed"})
 @websocket_api.async_response
 async def ws_clear_completed(hass: HomeAssistant, connection, msg) -> None:
@@ -130,6 +143,7 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
         ws_add,
         ws_remove,
         ws_set_category,
+        ws_snooze,
         ws_clear_completed,
         ws_refresh,
     ):

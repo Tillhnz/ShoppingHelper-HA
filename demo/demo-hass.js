@@ -82,7 +82,10 @@
         data.categories.forEach((c) => (c.items = c.items.filter((i) => i.key !== msg.key)));
         item.category = msg.category || "other"; item.category_overridden = !!msg.category;
         categoryFor(item.category).items.push(item);
+      } else if (type === "snooze") {
+        data.suggestions = data.suggestions.filter((x) => x.key !== msg.key);
       } else if (type === "add") {
+        data.suggestions = (data.suggestions || []).filter((x) => x.name.toLowerCase() !== msg.name.toLowerCase());
         const list = data.lists.find((l) => l.entity_id === msg.entity_id) || data.lists.find((l) => l.default);
         const m = msg.name.match(/^(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|x|stück)?\s+(.*)$/i);
         const name = m ? m[3] : msg.name;

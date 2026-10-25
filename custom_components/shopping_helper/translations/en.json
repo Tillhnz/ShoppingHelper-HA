@@ -61,6 +61,9 @@
       },
       "progress": {
         "name": "Shopping progress"
+      },
+      "suggestions": {
+        "name": "Suggestions"
       }
     }
   },

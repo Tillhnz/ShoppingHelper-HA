@@ -1023,118 +1023,408 @@
   "daily": [
    {
     "date": "2026-10-12",
-    "added": 3,
-    "done": 8
+    "added": 0,
+    "done": 0
    },
    {
     "date": "2026-10-13",
-    "added": 2,
-    "done": 5
+    "added": 8,
+    "done": 0
    },
    {
     "date": "2026-10-14",
-    "added": 9,
-    "done": 7
+    "added": 0,
+    "done": 8
    },
    {
     "date": "2026-10-15",
-    "added": 9,
-    "done": 1
+    "added": 0,
+    "done": 0
    },
    {
     "date": "2026-10-16",
-    "added": 9,
+    "added": 0,
     "done": 0
    },
    {
     "date": "2026-10-17",
-    "added": 7,
-    "done": 4
+    "added": 0,
+    "done": 0
    },
    {
     "date": "2026-10-18",
-    "added": 8,
-    "done": 3
+    "added": 4,
+    "done": 0
    },
    {
     "date": "2026-10-19",
-    "added": 3,
-    "done": 7
+    "added": 0,
+    "done": 4
    },
    {
     "date": "2026-10-20",
-    "added": 8,
-    "done": 8
+    "added": 0,
+    "done": 0
    },
    {
     "date": "2026-10-21",
-    "added": 7,
-    "done": 6
+    "added": 0,
+    "done": 0
    },
    {
     "date": "2026-10-22",
-    "added": 2,
-    "done": 3
+    "added": 0,
+    "done": 0
    },
    {
     "date": "2026-10-23",
-    "added": 2,
-    "done": 8
+    "added": 0,
+    "done": 0
    },
    {
     "date": "2026-10-24",
-    "added": 6,
+    "added": 0,
     "done": 0
    },
    {
     "date": "2026-10-25",
-    "added": 1,
-    "done": 2
+    "added": 0,
+    "done": 0
    }
   ],
   "top": [
    {
     "name": "Milch",
+    "count": 17
+   },
+   {
+    "name": "Bananen",
+    "count": 15
+   },
+   {
+    "name": "Joghurt",
     "count": 14
+   },
+   {
+    "name": "Tomaten",
+    "count": 14
+   },
+   {
+    "name": "Mineralwasser",
+    "count": 13
+   },
+   {
+    "name": "Äpfel",
+    "count": 13
+   },
+   {
+    "name": "Brötchen",
+    "count": 12
+   },
+   {
+    "name": "Eier",
+    "count": 11
+   },
+   {
+    "name": "Käse",
+    "count": 11
    },
    {
     "name": "Zwiebeln",
     "count": 11
-   },
-   {
-    "name": "Eier",
-    "count": 9
-   },
-   {
-    "name": "Bananen",
-    "count": 8
-   },
-   {
-    "name": "Butter",
-    "count": 7
-   },
-   {
-    "name": "Mehl",
-    "count": 6
-   },
-   {
-    "name": "Kaffee",
-    "count": 5
-   },
-   {
-    "name": "Tomaten",
-    "count": 5
-   },
-   {
-    "name": "Brötchen",
-    "count": 4
-   },
-   {
-    "name": "Parmesan",
-    "count": 3
    }
   ]
  },
+ "suggestions": [
+  {
+   "key": "joghurt",
+   "name": "Joghurt",
+   "category": "dairy",
+   "count": 14,
+   "interval": 7,
+   "days_since": 11,
+   "reason": "fällig",
+   "score": 6.139
+  },
+  {
+   "key": "käse",
+   "name": "Käse",
+   "category": "dairy",
+   "count": 11,
+   "interval": 10,
+   "days_since": 16,
+   "reason": "fällig",
+   "score": 5.736
+  },
+  {
+   "key": "sahne",
+   "name": "Sahne",
+   "category": "dairy",
+   "count": 9,
+   "interval": 12,
+   "days_since": 16,
+   "reason": "fällig",
+   "score": 4.429
+  },
+  {
+   "key": "knoblauch",
+   "name": "Knoblauch",
+   "category": "produce",
+   "count": 6,
+   "interval": 18,
+   "days_since": 24,
+   "reason": "fällig",
+   "score": 3.743
+  },
+  {
+   "key": "reis",
+   "name": "Reis",
+   "category": "pasta",
+   "count": 6,
+   "interval": 20,
+   "days_since": 18,
+   "reason": "bald fällig",
+   "score": 2.527
+  }
+ ],
+ "statistics": {
+  "kpis": {
+   "bought_30d": 42,
+   "trips_30d": 7,
+   "avg_per_trip": 6.0,
+   "cookidoo_share": 30,
+   "total_purchases": 200,
+   "distinct_items": 20,
+   "tracking_since": "2026-06-27",
+   "favorite_weekday": "Sa"
+  },
+  "weekly": [
+   {
+    "week": "2026-08-03",
+    "bought": 12,
+    "added": 12
+   },
+   {
+    "week": "2026-08-10",
+    "bought": 6,
+    "added": 14
+   },
+   {
+    "week": "2026-08-17",
+    "bought": 14,
+    "added": 6
+   },
+   {
+    "week": "2026-08-24",
+    "bought": 14,
+    "added": 17
+   },
+   {
+    "week": "2026-08-31",
+    "bought": 9,
+    "added": 14
+   },
+   {
+    "week": "2026-09-07",
+    "bought": 14,
+    "added": 13
+   },
+   {
+    "week": "2026-09-14",
+    "bought": 19,
+    "added": 12
+   },
+   {
+    "week": "2026-09-21",
+    "bought": 11,
+    "added": 11
+   },
+   {
+    "week": "2026-09-28",
+    "bought": 12,
+    "added": 12
+   },
+   {
+    "week": "2026-10-05",
+    "bought": 12,
+    "added": 12
+   },
+   {
+    "week": "2026-10-12",
+    "bought": 8,
+    "added": 12
+   },
+   {
+    "week": "2026-10-19",
+    "bought": 4,
+    "added": 0
+   }
+  ],
+  "weekday": [
+   {
+    "day": "Mo",
+    "bought": 30
+   },
+   {
+    "day": "Di",
+    "bought": 3
+   },
+   {
+    "day": "Mi",
+    "bought": 26
+   },
+   {
+    "day": "Do",
+    "bought": 36
+   },
+   {
+    "day": "Fr",
+    "bought": 5
+   },
+   {
+    "day": "Sa",
+    "bought": 37
+   },
+   {
+    "day": "So",
+    "bought": 8
+   }
+  ],
+  "categories": {
+   "dairy": 57,
+   "produce": 43,
+   "drinks": 15,
+   "pasta": 10,
+   "bakery": 9,
+   "baking": 4,
+   "drugstore": 4,
+   "household": 3
+  },
+  "sources": {
+   "cookidoo": 59,
+   "own": 141
+  },
+  "top": [
+   {
+    "key": "milch",
+    "name": "Milch",
+    "count": 17,
+    "interval": 7,
+    "last": "2026-10-19",
+    "category": "dairy"
+   },
+   {
+    "key": "banane",
+    "name": "Bananen",
+    "count": 15,
+    "interval": 8,
+    "last": "2026-10-14",
+    "category": "produce"
+   },
+   {
+    "key": "joghurt",
+    "name": "Joghurt",
+    "count": 14,
+    "interval": 7,
+    "last": "2026-10-14",
+    "category": "dairy"
+   },
+   {
+    "key": "tomate",
+    "name": "Tomaten",
+    "count": 14,
+    "interval": 8,
+    "last": "2026-10-14",
+    "category": "produce"
+   },
+   {
+    "key": "mineralwasser",
+    "name": "Mineralwasser",
+    "count": 13,
+    "interval": 9,
+    "last": "2026-10-19",
+    "category": "drinks"
+   },
+   {
+    "key": "apfel",
+    "name": "Äpfel",
+    "count": 13,
+    "interval": 8,
+    "last": "2026-10-19",
+    "category": "produce"
+   },
+   {
+    "key": "brötchen",
+    "name": "Brötchen",
+    "count": 12,
+    "interval": 9,
+    "last": "2026-10-14",
+    "category": "bakery"
+   },
+   {
+    "key": "ei",
+    "name": "Eier",
+    "count": 11,
+    "interval": 10,
+    "last": "2026-10-14",
+    "category": "dairy"
+   },
+   {
+    "key": "käse",
+    "name": "Käse",
+    "count": 11,
+    "interval": 10,
+    "last": "2026-10-09",
+    "category": "dairy"
+   },
+   {
+    "key": "zwiebel",
+    "name": "Zwiebeln",
+    "count": 11,
+    "interval": 11,
+    "last": "2026-10-14",
+    "category": "produce"
+   },
+   {
+    "key": "butter",
+    "name": "Butter",
+    "count": 10,
+    "interval": 11,
+    "last": "2026-10-07",
+    "category": "dairy"
+   },
+   {
+    "key": "sahne",
+    "name": "Sahne",
+    "count": 9,
+    "interval": 12,
+    "last": "2026-10-09",
+    "category": "dairy"
+   }
+  ]
+ },
+ "known_names": [
+  "Milch",
+  "Bananen",
+  "Joghurt",
+  "Tomaten",
+  "Mineralwasser",
+  "Äpfel",
+  "Brötchen",
+  "Eier",
+  "Käse",
+  "Zwiebeln",
+  "Butter",
+  "Sahne",
+  "Haferflocken",
+  "Kaffee",
+  "Parmesan",
+  "Knoblauch",
+  "Mehl",
+  "Reis",
+  "Toilettenpapier",
+  "Spülmittel"
+ ],
  "lists": [
   {
    "entity_id": "todo.cookidoo_einkaufsliste",

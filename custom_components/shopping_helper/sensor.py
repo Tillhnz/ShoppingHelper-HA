@@ -23,7 +23,9 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     coordinator = entry.runtime_data
-    async_add_entities([OpenItemsSensor(coordinator), ProgressSensor(coordinator)])
+    async_add_entities(
+        [OpenItemsSensor(coordinator), ProgressSensor(coordinator), SuggestionsSensor(coordinator)]
+    )
 
 
 class _Base(CoordinatorEntity[ShoppingHelperCoordinator], SensorEntity):
@@ -88,3 +90,24 @@ class ProgressSensor(_Base):
     @property
     def native_value(self) -> int:
         return self._stats.get("progress", 0)
+
+
+class SuggestionsSensor(_Base):
+    """Frequently bought items that are due again but not on the list."""
+
+    _attr_icon = "mdi:lightbulb-on-outline"
+
+    def __init__(self, coordinator: ShoppingHelperCoordinator) -> None:
+        super().__init__(coordinator, "suggestions")
+
+    @property
+    def native_value(self) -> int:
+        return len((self.coordinator.data or {}).get("suggestions", []))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        suggestions = (self.coordinator.data or {}).get("suggestions", [])
+        return {
+            "items": [s["name"] for s in suggestions],
+            "due": [s["name"] for s in suggestions if s["reason"] == "fällig"],
+        }

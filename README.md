@@ -23,10 +23,18 @@ Eigene:   2 l Milch     ┘──►  Milch · 2,3 l                            
   „⋮“ dauerhaft umsortieren.
 - **Abhaken überall** – ein Haken im Panel hakt den Artikel in *allen* Ursprungslisten ab
   (bei Cookidoo wird er als „vorhanden“ markiert).
-- **Darstellungen** – Übersicht mit Kennzahlen, Donut nach Kategorien, Balken nach Herkunft,
-  Fortschrittsring, Verlauf der letzten 14 Tage und „Häufig auf der Liste“.
+- **Vorschläge** – Shopping Helper merkt sich, was du wie oft kaufst. Artikel, die wieder fällig
+  sind („alle ~7 Tage, zuletzt vor 8 Tagen“) und nicht auf der Liste stehen, erscheinen als
+  Vorschläge über der Liste – ein Tipp fügt sie hinzu, „×“ blendet sie eine Woche aus. Beim Tippen
+  im Eingabefeld werden bekannte Artikel automatisch ergänzt.
+- **Übersicht** – Kennzahlen zur aktuellen Liste, Donut nach Kategorien, Balken nach Herkunft,
+  Fortschrittsring.
+- **Statistik** – gekaufte Artikel pro Woche (12 Wochen), Einkaufstage nach Wochentag, Käufe nach
+  Kategorie, Anteil Cookidoo vs. eigene Listen, Ø Artikel pro Einkauf und die am häufigsten gekauften
+  Artikel mit typischem Kaufrhythmus. Als Kauf zählt jeder abgehakte Artikel.
 - **Sensoren** – `sensor.shopping_helper_offene_artikel` (inkl. Kategorien und Artikelliste als
-  Attribute) und `sensor.shopping_helper_einkaufsfortschritt` für Automationen und Dashboards (die Entitäts-IDs richten sich nach der Systemsprache).
+  Attribute), `sensor.shopping_helper_einkaufsfortschritt` und `sensor.shopping_helper_vorschlage`
+  (fällige Artikel als Attribut) für Automationen und Dashboards (die Entitäts-IDs richten sich nach der Systemsprache).
 - **Aktionen** – `shopping_helper.add_item`, `refresh`, `clear_completed`, `set_category`.
 - Hell/Dunkel-Theme, mobil-tauglich (auch in der Companion-App), keine Abhängigkeiten, kein Build-Schritt.
 
