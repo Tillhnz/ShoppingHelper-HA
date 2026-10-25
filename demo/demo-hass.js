@@ -76,7 +76,7 @@
         const n = allItems().filter((i) => i.checked).length;
         data.categories.forEach((c) => (c.items = c.items.filter((i) => !i.checked)));
         emit();
-        return { removed: n, hidden: 0 };
+        return { removed: n, hidden: 0, cookidoo_cleared: true };
       } else if (type === "set_category") {
         const item = find(msg.key);
         data.categories.forEach((c) => (c.items = c.items.filter((i) => i.key !== msg.key)));

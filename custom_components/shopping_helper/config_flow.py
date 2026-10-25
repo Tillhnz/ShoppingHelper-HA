@@ -14,6 +14,7 @@ from homeassistant.helpers import entity_registry as er, selector
 
 from .const import (
     CONF_CATEGORY_ORDER,
+    CONF_CLEAR_COOKIDOO,
     CONF_COOKIDOO_LISTS,
     CONF_DEFAULT_LIST,
     CONF_OWN_LISTS,
@@ -126,6 +127,9 @@ class ShoppingHelperOptionsFlow(OptionsFlow):
                 ): selector.IconSelector(),
                 vol.Optional(
                     CONF_REQUIRE_ADMIN, default=current.get(CONF_REQUIRE_ADMIN, False)
+                ): bool,
+                vol.Optional(
+                    CONF_CLEAR_COOKIDOO, default=current.get(CONF_CLEAR_COOKIDOO, True)
                 ): bool,
                 vol.Optional(
                     CONF_CATEGORY_ORDER,

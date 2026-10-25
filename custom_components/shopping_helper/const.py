@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 DOMAIN = "shopping_helper"
-VERSION = "1.0.1"
+VERSION = "1.1.0"
 
 CONF_COOKIDOO_LISTS = "cookidoo_lists"
 CONF_OWN_LISTS = "own_lists"
@@ -11,6 +11,7 @@ CONF_SIDEBAR_TITLE = "sidebar_title"
 CONF_SIDEBAR_ICON = "sidebar_icon"
 CONF_CATEGORY_ORDER = "category_order"
 CONF_REQUIRE_ADMIN = "require_admin"
+CONF_CLEAR_COOKIDOO = "clear_cookidoo"
 
 DEFAULT_SIDEBAR_TITLE = "Einkaufen"
 DEFAULT_SIDEBAR_ICON = "mdi:cart-variant"

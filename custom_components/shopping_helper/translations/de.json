@@ -37,13 +37,15 @@
           "sidebar_title": "Titel in der Seitenleiste",
           "sidebar_icon": "Icon in der Seitenleiste",
           "require_admin": "Nur für Administratoren sichtbar",
-          "category_order": "Laden-Reihenfolge (eine Kategorie pro Zeile, oben = zuerst)"
+          "category_order": "Laden-Reihenfolge (eine Kategorie pro Zeile, oben = zuerst)",
+          "clear_cookidoo": "Cookidoo-Liste nach dem Einkauf leeren"
         },
         "data_description": {
           "cookidoo_lists": "Meist „Einkaufsliste“ und „Zusätzliche Einkäufe“ der Cookidoo-Integration.",
           "own_lists": "z. B. die eingebaute Einkaufsliste, Bring!, Todoist …",
           "default_list": "Neue Artikel aus dem Panel landen hier.",
-          "category_order": "Kategorien in der Reihenfolge, in der du durch deinen Supermarkt läufst."
+          "category_order": "Kategorien in der Reihenfolge, in der du durch deinen Supermarkt läufst.",
+          "clear_cookidoo": "Sind alle Cookidoo-Artikel abgehakt, leert „Erledigte entfernen“ die Cookidoo-Einkaufsliste über den Knopf „Einkaufsliste leeren“ der Cookidoo-Integration (diesen Knopf vorher aktivieren)."
         }
       }
     },

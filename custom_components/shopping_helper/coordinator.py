@@ -17,6 +17,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_CATEGORY_ORDER,
+    CONF_CLEAR_COOKIDOO,
     CONF_COOKIDOO_LISTS,
     CONF_DEFAULT_LIST,
     CONF_OWN_LISTS,
@@ -258,16 +259,103 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._schedule_save()
         self.async_set_updated_data(self._build())
 
-    async def async_clear_completed(self) -> dict[str, int]:
-        """Remove checked items everywhere; Cookidoo ingredients are hidden instead."""
+    # ------------------------------------------------------------------ cookidoo clear
+    def _cookidoo_clear_target(self, cookidoo_entities: list[str]) -> tuple[str | None, str | None]:
+        """Find the Cookidoo "clear shopping list" button and check it is safe to press.
+
+        Returns (button_entity_id, None) when the list may be cleared, otherwise
+        (None, reason): "disabled_option", "button_missing", "button_disabled",
+        "button_unavailable" or "open_items".
+        """
+        if not self.settings.get(CONF_CLEAR_COOKIDOO, True):
+            return None, "disabled_option"
+        registry = er.async_get(self.hass)
+        config_entry_ids = {
+            entry.config_entry_id
+            for eid in cookidoo_entities
+            if (entry := registry.async_get(eid)) and entry.config_entry_id
+        }
+        reason = "button_missing"
+        for config_entry_id in config_entry_ids:
+            entries = er.async_entries_for_config_entry(registry, config_entry_id)
+            button = next(
+                (
+                    e
+                    for e in entries
+                    if e.domain == "button"
+                    and e.platform == COOKIDOO_DOMAIN
+                    and (e.unique_id or "").endswith("_todo_clear")
+                ),
+                None,
+            )
+            if button is None:
+                continue
+            if button.disabled_by is not None:
+                reason = "button_disabled"
+                continue
+            state = self.hass.states.get(button.entity_id)
+            if state is None or state.state == STATE_UNAVAILABLE:
+                reason = "button_unavailable"
+                continue
+            # The button empties *both* Cookidoo lists of this account – including lists
+            # Shopping Helper doesn't show. Only press it when none of them has open items
+            # (a to-do entity's state is its number of open items).
+            for todo in (e for e in entries if e.domain == TODO):
+                todo_state = self.hass.states.get(todo.entity_id)
+                if todo_state is None or todo_state.state != "0":
+                    reason = "open_items"
+                    break
+            else:
+                return button.entity_id, None
+        return None, reason
+
+    async def async_clear_completed(self) -> dict[str, Any]:
+        """Remove checked items everywhere.
+
+        Own lists: checked items are deleted. Cookidoo: when everything is checked, the
+        Cookidoo list is emptied via the integration's button; otherwise the checked
+        ingredients are hidden (Cookidoo can't delete single ingredients).
+        """
         await self.async_refresh()  # act on the current state of all lists
+        cookidoo_entities = [e for e in self.list_entities if self._is_cookidoo(e)]
         by_entity: dict[str, list[tuple[str, str]]] = {}
         for src in self._sources:
             if src.done and not self._is_hidden(src):
                 by_entity.setdefault(src.entity_id, []).append((src.uid, src.status))
+
         removed = hidden = 0
+        cookidoo_cleared = False
+        cookidoo_hint: str | None = None
+
+        # also counts ingredients hidden by an earlier clean-up – they still sit in Cookidoo
+        cookidoo_done = sum(
+            1 for src in self._sources if src.entity_id in cookidoo_entities and src.done
+        )
+        if cookidoo_done:
+            button, cookidoo_hint = self._cookidoo_clear_target(cookidoo_entities)
+            if button:
+                try:
+                    await self.hass.services.async_call(
+                        "button", "press", target={"entity_id": button}, blocking=True
+                    )
+                except HomeAssistantError as err:
+                    _LOGGER.warning("Clearing the Cookidoo shopping list failed: %s", err)
+                    cookidoo_hint = "press_failed"
+                else:
+                    cookidoo_cleared = True
+                    removed += cookidoo_done
+                    for entity_id in cookidoo_entities:
+                        by_entity.pop(entity_id, None)
+                        self.hidden.pop(entity_id, None)
+                    self._schedule_save()
+
         for entity_id, items in by_entity.items():
             r, h = await self._delete_or_hide(entity_id, items)
             removed, hidden = removed + r, hidden + h
         await self.async_refresh()
-        return {"removed": removed, "hidden": hidden}
+        return {
+            "removed": removed,
+            "hidden": hidden,
+            "cookidoo_cleared": cookidoo_cleared,
+            "cookidoo_hint": None if cookidoo_cleared or not hidden else cookidoo_hint,
+        }

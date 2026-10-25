@@ -259,14 +259,7 @@ class ShoppingHelperPanel extends HTMLElement {
     } else if (action === "confirm") {
       this._confirmClear = false;
       this._clearing = true;
-      this._ws({ type: "clear_completed" }, (r) => {
-        const removed = r?.removed ?? 0;
-        const hidden = r?.hidden ?? 0;
-        if (!removed && !hidden) return "Keine erledigten Artikel gefunden";
-        return hidden
-          ? `${removed + hidden} erledigte entfernt (${hidden} Cookidoo-Zutaten ausgeblendet)`
-          : `${removed} erledigte Artikel entfernt`;
-      }).finally(() => {
+      this._ws({ type: "clear_completed" }, (r) => this._clearMessage(r)).finally(() => {
         this._clearing = false;
         this._render();
       });
@@ -275,17 +268,37 @@ class ShoppingHelperPanel extends HTMLElement {
     return true;
   }
 
+  _clearMessage(r) {
+    const removed = r?.removed ?? 0;
+    const hidden = r?.hidden ?? 0;
+    if (!removed && !hidden) return "Keine erledigten Artikel gefunden";
+    if (r?.cookidoo_cleared) return `${removed + hidden} erledigte entfernt, Cookidoo-Liste geleert`;
+    if (!hidden) return `${removed} erledigte Artikel entfernt`;
+    const hints = {
+      open_items: "Cookidoo wird geleert, sobald dort alles abgehakt ist.",
+      button_disabled: "Aktiviere bei der Cookidoo-Integration den Knopf „Einkaufsliste leeren“, dann wird Cookidoo mitgeleert.",
+      button_missing: "Aktiviere bei der Cookidoo-Integration den Knopf „Einkaufsliste leeren“, dann wird Cookidoo mitgeleert.",
+      button_unavailable: "Der Cookidoo-Knopf „Einkaufsliste leeren“ ist gerade nicht erreichbar.",
+      press_failed: "Cookidoo konnte nicht geleert werden.",
+    };
+    const hint = hints[r?.cookidoo_hint] ? ` ${hints[r.cookidoo_hint]}` : "";
+    return `${removed + hidden} erledigte entfernt (${hidden} Cookidoo-Zutaten ausgeblendet).${hint}`;
+  }
+
   _clearFooter(stats) {
-    if (!stats.done && !this._clearing) return "";
+    const hiddenOnly = !stats.done && stats.hidden > 0;
+    if (!stats.done && !hiddenOnly && !this._clearing) return "";
     let inner;
     if (this._clearing) {
       inner = `<span class="muted">Entferne erledigte Artikel …</span>`;
     } else if (this._confirmClear) {
-      inner = `<span>${stats.done} erledigte aus allen Listen entfernen?</span>
+      inner = `<span>${hiddenOnly ? "Ausgeblendete Zutaten aus Cookidoo entfernen?" : `${stats.done} erledigte aus allen Listen entfernen?`}</span>
         <button class="text-btn danger" data-clear="confirm"><ha-icon icon="mdi:check"></ha-icon>Entfernen</button>
         <button class="text-btn" data-clear="cancel">Abbrechen</button>`;
     } else {
-      inner = `<button class="text-btn" data-clear="ask"><ha-icon icon="mdi:broom"></ha-icon>${stats.done} erledigte entfernen</button>`;
+      inner = `<button class="text-btn" data-clear="ask"><ha-icon icon="mdi:broom"></ha-icon>${
+        hiddenOnly ? `${stats.hidden} ausgeblendete Cookidoo-Zutaten entfernen` : `${stats.done} erledigte entfernen`
+      }</button>`;
     }
     return `<div class="footer-actions">${inner}</div>`;
   }

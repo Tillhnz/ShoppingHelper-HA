@@ -37,13 +37,15 @@
           "sidebar_title": "Sidebar title",
           "sidebar_icon": "Sidebar icon",
           "require_admin": "Only visible for admins",
-          "category_order": "Store route (one category per line, top = first)"
+          "category_order": "Store route (one category per line, top = first)",
+          "clear_cookidoo": "Empty the Cookidoo list after shopping"
         },
         "data_description": {
           "cookidoo_lists": "Usually 'Shopping list' and 'Additional purchases' of the Cookidoo integration.",
           "own_lists": "e.g. the built-in shopping list, Bring!, Todoist …",
           "default_list": "New items from the panel are added here.",
-          "category_order": "Categories in the order you walk through your supermarket."
+          "category_order": "Categories in the order you walk through your supermarket.",
+          "clear_cookidoo": "When all Cookidoo items are checked, 'Remove completed' empties the Cookidoo shopping list via the Cookidoo integration's 'Clear shopping list' button (enable that button first)."
         }
       }
     },
