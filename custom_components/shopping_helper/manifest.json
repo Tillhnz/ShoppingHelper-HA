@@ -1,0 +1,15 @@
+{
+  "domain": "shopping_helper",
+  "name": "Shopping Helper",
+  "after_dependencies": ["cookidoo"],
+  "codeowners": ["@Tillhnz"],
+  "config_flow": true,
+  "dependencies": ["frontend", "http", "panel_custom", "todo", "websocket_api"],
+  "documentation": "https://github.com/Tillhnz/ShoppingHelper-HA",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/Tillhnz/ShoppingHelper-HA/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "1.0.0"
+}

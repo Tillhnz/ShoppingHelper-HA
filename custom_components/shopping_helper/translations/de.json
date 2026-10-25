@@ -1,0 +1,130 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Shopping Helper",
+        "description": "Wähle die To-do-Listen, die zusammengeführt werden sollen. {cookidoo_found} Cookidoo-Liste(n) wurden automatisch erkannt. Falls keine gefunden wurde, richte zuerst die offizielle Cookidoo-Integration ein.",
+        "data": {
+          "cookidoo_lists": "Cookidoo-Listen",
+          "own_lists": "Eigene Einkaufslisten",
+          "default_list": "Standardliste für neue Artikel",
+          "sidebar_title": "Titel in der Seitenleiste"
+        },
+        "data_description": {
+          "cookidoo_lists": "Meist „Einkaufsliste“ und „Zusätzliche Einkäufe“ der Cookidoo-Integration.",
+          "own_lists": "z. B. die eingebaute Einkaufsliste, Bring!, Todoist …",
+          "default_list": "Neue Artikel aus dem Panel landen hier."
+        }
+      }
+    },
+    "error": {
+      "no_lists": "Wähle mindestens eine Liste aus.",
+      "default_not_selected": "Die Standardliste muss eine der ausgewählten Listen sein."
+    },
+    "abort": {
+      "single_instance_allowed": "Shopping Helper ist bereits eingerichtet.",
+      "already_configured": "Shopping Helper ist bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Shopping Helper Optionen",
+        "data": {
+          "cookidoo_lists": "Cookidoo-Listen",
+          "own_lists": "Eigene Einkaufslisten",
+          "default_list": "Standardliste für neue Artikel",
+          "sidebar_title": "Titel in der Seitenleiste",
+          "sidebar_icon": "Icon in der Seitenleiste",
+          "require_admin": "Nur für Administratoren sichtbar",
+          "category_order": "Laden-Reihenfolge (eine Kategorie pro Zeile, oben = zuerst)"
+        },
+        "data_description": {
+          "cookidoo_lists": "Meist „Einkaufsliste“ und „Zusätzliche Einkäufe“ der Cookidoo-Integration.",
+          "own_lists": "z. B. die eingebaute Einkaufsliste, Bring!, Todoist …",
+          "default_list": "Neue Artikel aus dem Panel landen hier.",
+          "category_order": "Kategorien in der Reihenfolge, in der du durch deinen Supermarkt läufst."
+        }
+      }
+    },
+    "error": {
+      "no_lists": "Wähle mindestens eine Liste aus.",
+      "default_not_selected": "Die Standardliste muss eine der ausgewählten Listen sein."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "open_items": {
+        "name": "Offene Artikel"
+      },
+      "progress": {
+        "name": "Einkaufsfortschritt"
+      }
+    }
+  },
+  "selector": {
+    "category": {
+      "options": {
+        "produce": "Obst & Gemüse",
+        "bakery": "Brot & Backwaren",
+        "dairy": "Milch, Käse & Eier",
+        "meat": "Fleisch & Wurst",
+        "fish": "Fisch & Meeresfrüchte",
+        "frozen": "Tiefkühl",
+        "pasta": "Nudeln, Reis & Getreide",
+        "baking": "Backzutaten",
+        "spices": "Gewürze & Würzmittel",
+        "oils": "Öl, Essig & Saucen",
+        "canned": "Konserven & Fertiges",
+        "breakfast": "Frühstück & Aufstriche",
+        "snacks": "Süßes & Snacks",
+        "drinks": "Getränke",
+        "drugstore": "Drogerie & Hygiene",
+        "household": "Haushalt",
+        "other": "Sonstiges"
+      }
+    }
+  },
+  "services": {
+    "add_item": {
+      "name": "Artikel hinzufügen",
+      "description": "Fügt einen Artikel zu einer Liste hinzu (Standard: konfigurierte Standardliste).",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "Produkt, optional mit Menge, z. B. „2 l Milch“."
+        },
+        "list": {
+          "name": "Liste",
+          "description": "Ziel-To-do-Liste."
+        },
+        "description": {
+          "name": "Menge / Notiz",
+          "description": "Optionale Beschreibung."
+        }
+      }
+    },
+    "refresh": {
+      "name": "Aktualisieren",
+      "description": "Alle Listen neu einlesen."
+    },
+    "clear_completed": {
+      "name": "Erledigte entfernen",
+      "description": "Entfernt abgehakte Artikel aus allen Listen, die das unterstützen."
+    },
+    "set_category": {
+      "name": "Kategorie festlegen",
+      "description": "Ordnet ein Produkt dauerhaft einer Kategorie zu.",
+      "fields": {
+        "item": {
+          "name": "Produkt",
+          "description": "Produktname."
+        },
+        "category": {
+          "name": "Kategorie",
+          "description": "Leer lassen, um die automatische Erkennung wiederherzustellen."
+        }
+      }
+    }
+  }
+}

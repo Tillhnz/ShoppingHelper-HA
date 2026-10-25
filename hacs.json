@@ -1,0 +1,6 @@
+{
+  "name": "Shopping Helper",
+  "homeassistant": "2025.3.0",
+  "render_readme": true,
+  "country": ["DE", "AT", "CH"]
+}

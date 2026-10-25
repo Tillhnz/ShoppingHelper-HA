@@ -1,0 +1,130 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Shopping Helper",
+        "description": "Choose the to-do lists to merge. {cookidoo_found} Cookidoo list(s) were detected automatically. Install the official Cookidoo integration first if none were found.",
+        "data": {
+          "cookidoo_lists": "Cookidoo lists",
+          "own_lists": "Own shopping lists",
+          "default_list": "Default list for new items",
+          "sidebar_title": "Sidebar title"
+        },
+        "data_description": {
+          "cookidoo_lists": "Usually 'Shopping list' and 'Additional purchases' of the Cookidoo integration.",
+          "own_lists": "e.g. the built-in shopping list, Bring!, Todoist …",
+          "default_list": "New items from the panel are added here."
+        }
+      }
+    },
+    "error": {
+      "no_lists": "Select at least one list.",
+      "default_not_selected": "The default list must be one of the selected lists."
+    },
+    "abort": {
+      "single_instance_allowed": "Shopping Helper is already set up.",
+      "already_configured": "Shopping Helper is already set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Shopping Helper options",
+        "data": {
+          "cookidoo_lists": "Cookidoo lists",
+          "own_lists": "Own shopping lists",
+          "default_list": "Default list for new items",
+          "sidebar_title": "Sidebar title",
+          "sidebar_icon": "Sidebar icon",
+          "require_admin": "Only visible for admins",
+          "category_order": "Store route (one category per line, top = first)"
+        },
+        "data_description": {
+          "cookidoo_lists": "Usually 'Shopping list' and 'Additional purchases' of the Cookidoo integration.",
+          "own_lists": "e.g. the built-in shopping list, Bring!, Todoist …",
+          "default_list": "New items from the panel are added here.",
+          "category_order": "Categories in the order you walk through your supermarket."
+        }
+      }
+    },
+    "error": {
+      "no_lists": "Select at least one list.",
+      "default_not_selected": "The default list must be one of the selected lists."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "open_items": {
+        "name": "Open items"
+      },
+      "progress": {
+        "name": "Shopping progress"
+      }
+    }
+  },
+  "selector": {
+    "category": {
+      "options": {
+        "produce": "Fruit & vegetables",
+        "bakery": "Bread & bakery",
+        "dairy": "Dairy & eggs",
+        "meat": "Meat & sausages",
+        "fish": "Fish & seafood",
+        "frozen": "Frozen",
+        "pasta": "Pasta, rice & grains",
+        "baking": "Baking",
+        "spices": "Spices & condiments",
+        "oils": "Oil, vinegar & sauces",
+        "canned": "Canned & ready meals",
+        "breakfast": "Breakfast & spreads",
+        "snacks": "Sweets & snacks",
+        "drinks": "Drinks",
+        "drugstore": "Drugstore",
+        "household": "Household",
+        "other": "Other"
+      }
+    }
+  },
+  "services": {
+    "add_item": {
+      "name": "Add item",
+      "description": "Adds an item to a list (default: the configured default list).",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "Product, optionally with quantity, e.g. '2 l Milch'."
+        },
+        "list": {
+          "name": "List",
+          "description": "Target to-do list."
+        },
+        "description": {
+          "name": "Quantity / note",
+          "description": "Optional description."
+        }
+      }
+    },
+    "refresh": {
+      "name": "Refresh",
+      "description": "Re-read all lists."
+    },
+    "clear_completed": {
+      "name": "Remove completed",
+      "description": "Removes checked items from all lists that support it."
+    },
+    "set_category": {
+      "name": "Set category",
+      "description": "Assigns a product permanently to a category.",
+      "fields": {
+        "item": {
+          "name": "Product",
+          "description": "Product name."
+        },
+        "category": {
+          "name": "Category",
+          "description": "Leave empty to restore automatic detection."
+        }
+      }
+    }
+  }
+}

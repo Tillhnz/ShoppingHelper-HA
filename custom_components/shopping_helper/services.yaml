@@ -1,0 +1,49 @@
+add_item:
+  fields:
+    name:
+      required: true
+      example: "2 l Milch"
+      selector:
+        text:
+    list:
+      required: false
+      selector:
+        entity:
+          domain: todo
+    description:
+      required: false
+      example: "500 g"
+      selector:
+        text:
+refresh:
+clear_completed:
+set_category:
+  fields:
+    item:
+      required: true
+      example: "Haferflocken"
+      selector:
+        text:
+    category:
+      required: false
+      selector:
+        select:
+          options:
+            - produce
+            - bakery
+            - dairy
+            - meat
+            - fish
+            - frozen
+            - pasta
+            - baking
+            - spices
+            - oils
+            - canned
+            - breakfast
+            - snacks
+            - drinks
+            - drugstore
+            - household
+            - other
+          translation_key: category

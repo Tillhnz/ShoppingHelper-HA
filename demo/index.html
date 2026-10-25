@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shopping Helper Demo</title>
+  <style>
+    :root {
+      --primary-color: #03a9f4; --primary-background-color: #fafafa; --card-background-color: #fff;
+      --secondary-background-color: #f0f0f0; --primary-text-color: #212121; --secondary-text-color: #727272;
+      --divider-color: rgba(0,0,0,.12); --app-header-background-color: #03a9f4; --app-header-text-color: #fff;
+      --success-color: #43a047; --error-color: #db4437;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --primary-background-color: #111111; --card-background-color: #1c1c1c; --secondary-background-color: #282828;
+        --primary-text-color: #e1e1e1; --secondary-text-color: #9b9b9b; --divider-color: rgba(225,225,225,.12);
+        --app-header-background-color: #1c1c1c; --app-header-text-color: #e1e1e1;
+      }
+    }
+    body { margin: 0; background: var(--primary-background-color); font-family: Roboto, system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <!-- Demo with sample data – no Home Assistant needed. Actions are simulated locally. -->
+  <script src="sample-data.js"></script>
+  <script src="demo-hass.js"></script>
+  <script src="../custom_components/shopping_helper/frontend/shopping-helper-panel.js"></script>
+  <script>
+    const panel = document.createElement("shopping-helper-panel");
+    panel.panel = { title: "Einkaufen" };
+    panel.narrow = window.innerWidth < 870;
+    panel.hass = window.mockHass;
+    document.body.appendChild(panel);
+    addEventListener("hass-notification", (e) => console.info("Toast:", e.detail.message));
+  </script>
+</body>
+</html>
