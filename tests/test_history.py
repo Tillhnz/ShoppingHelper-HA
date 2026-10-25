@@ -67,3 +67,18 @@ def test_statistics():
 def test_old_storage_format_still_loads():
     t = HistoryTracker({"seen": {}, "daily": {}, "frequency": {"ei": {"name": "Eier", "count": 4}}, "initialized": True})
     assert t.purchases == {} and t.suggestions("2026-10-25", set())[0]["reason"] == "oft auf der Liste"
+
+
+def test_items_at_home_are_not_purchases():
+    t = _tracker()
+    t.update([src("a", "Salz")], "2026-09-01")
+    t.update([src("a", "Salz", "completed")], "2026-09-01", not_bought={"todo.list|a"})
+    assert "salz" not in t.purchases and t.daily["2026-09-01"]["done"] == 0
+    # a second "Salz" on another list is really bought ...
+    nb = {"todo.list|a"}
+    t.update([src("a", "Salz", "completed"), src("b", "Salz")], "2026-09-01", not_bought=nb)
+    t.update([src("a", "Salz", "completed"), src("b", "Salz", "completed")], "2026-09-01", not_bought=nb)
+    assert t.purchases["salz"]["count"] == 1
+    # ... and putting the "at home" one back on the list must not undo that purchase
+    t.update([src("a", "Salz"), src("b", "Salz", "completed")], "2026-09-01")
+    assert t.purchases["salz"]["count"] == 1

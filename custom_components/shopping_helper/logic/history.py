@@ -34,6 +34,7 @@ class HistoryTracker:
         # key -> {"name", "category", "dates": [iso, ...], "count", "cookidoo", "own"}
         self.purchases: dict[str, dict] = {k: dict(v) for k, v in data.get("purchases", {}).items()}
         self.snoozed: dict[str, str] = dict(data.get("snoozed", {}))  # key -> iso date until
+        self.counted: dict[str, str] = dict(data.get("counted", {}))  # ident -> purchase date
         self.initialized: bool = bool(data.get("initialized", False))
 
     def as_dict(self) -> dict:
@@ -43,15 +44,25 @@ class HistoryTracker:
             "frequency": self.frequency,
             "purchases": self.purchases,
             "snoozed": self.snoozed,
+            "counted": self.counted,
             "initialized": self.initialized,
         }
 
     # ------------------------------------------------------------------ tracking
     def update(
-        self, sources: list[SourceItem], today: str, overrides: dict[str, str] | None = None
+        self,
+        sources: list[SourceItem],
+        today: str,
+        overrides: dict[str, str] | None = None,
+        not_bought: set[str] | None = None,
     ) -> bool:
-        """Compare with the last snapshot. Returns True when something changed."""
+        """Compare with the last snapshot. Returns True when something changed.
+
+        ``not_bought`` holds "entity|uid" idents checked as "already at home" – they
+        are not counted as purchases.
+        """
         overrides = overrides or {}
+        not_bought = not_bought or set()
         changed = False
         current: dict[str, str] = {}
         day = self.daily.setdefault(today, {"added": 0, "done": 0})
@@ -62,24 +73,27 @@ class HistoryTracker:
             if previous is None:
                 if self.initialized:
                     day["added"] += 1
-                    if src.done:  # added and checked between two polls
+                    if src.done and ident not in not_bought:  # added and checked between two polls
                         day["done"] += 1
-                        self._purchase(src, today, overrides)
+                        self._purchase(src, today, overrides, ident)
                 if not src.done:
                     self._count(src)
                 changed = True
             elif previous != src.status:
                 if self.initialized:
                     if src.done:
-                        day["done"] += 1
-                        self._purchase(src, today, overrides)
-                    else:
+                        if ident not in not_bought:
+                            day["done"] += 1
+                            self._purchase(src, today, overrides, ident)
+                    elif self.counted.get(ident) == today:
                         self._unpurchase(src, today)
                         day["done"] = max(0, day["done"] - 1)
+                        del self.counted[ident]
                 changed = True
         if set(current) != set(self.seen):
             changed = True
         self.seen = current
+        self.counted = {i: d for i, d in self.counted.items() if i in current}
         if not self.initialized:
             self.initialized = True
             changed = True
@@ -100,7 +114,11 @@ class HistoryTracker:
             keep = sorted(self.frequency.items(), key=lambda kv: -kv[1]["count"])[:MAX_FREQUENCY]
             self.frequency = dict(keep)
 
-    def _purchase(self, src: SourceItem, today: str, overrides: dict[str, str]) -> None:
+    def _purchase(
+        self, src: SourceItem, today: str, overrides: dict[str, str], ident: str | None = None
+    ) -> None:
+        if ident:
+            self.counted[ident] = today
         key, name = self._key_name(src)
         entry = self.purchases.setdefault(
             key, {"name": name, "category": "other", "dates": [], "count": 0, "cookidoo": 0, "own": 0}

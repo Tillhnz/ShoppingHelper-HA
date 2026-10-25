@@ -68,6 +68,15 @@ async def ws_check(hass: HomeAssistant, connection, msg) -> None:
 
 
 @websocket_api.websocket_command(
+    {vol.Required("type"): f"{DOMAIN}/have", vol.Required("key"): str, vol.Required("have"): bool}
+)
+@websocket_api.async_response
+async def ws_have(hass: HomeAssistant, connection, msg) -> None:
+    if coordinator := _get(hass, connection, msg):
+        await _run(connection, msg, coordinator.async_set_have(msg["key"], msg["have"]))
+
+
+@websocket_api.websocket_command(
     {
         vol.Required("type"): f"{DOMAIN}/add",
         vol.Required("name"): str,
@@ -140,6 +149,7 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
         ws_data,
         ws_subscribe,
         ws_check,
+        ws_have,
         ws_add,
         ws_remove,
         ws_set_category,

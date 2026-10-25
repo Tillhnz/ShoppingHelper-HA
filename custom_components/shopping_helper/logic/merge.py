@@ -37,9 +37,15 @@ def merge_items(
     sources: list[SourceItem],
     category_order: list[str],
     overrides: dict[str, str] | None = None,
+    have: set[tuple[str, str]] | None = None,
 ) -> dict:
-    """Combine identical products, sum quantities, assign and order categories."""
+    """Combine identical products, sum quantities, assign and order categories.
+
+    ``have`` holds (entity_id, uid) pairs that were marked "already at home": they are
+    checked at the source but were not bought.
+    """
     overrides = overrides or {}
+    have = have or set()
     groups: dict[str, list[tuple[SourceItem, object]]] = {}
     for src in sources:
         parsed = parse_entry(src.summary, src.description)
@@ -50,7 +56,9 @@ def merge_items(
     for key, members in groups.items():
         open_members = [(s, p) for s, p in members if not s.done]
         relevant = open_members or members
-        quantities = sum_quantities([q for _, p in relevant for q in p.quantities])
+        all_quantities = [q for _, p in relevant for q in p.quantities]
+        quantities = sum_quantities(all_quantities)
+        families = {q.family for q in all_quantities}
         notes = sorted({n for _, p in relevant for n in p.notes})
         name = _pick_name([p.name for s, p in (open_members or members)])
         category = overrides.get(key)
@@ -66,11 +74,21 @@ def merge_items(
                 "quantities": [{"amount": round(q.amount, 3), "unit": q.unit} for q in quantities],
                 "notes": notes,
                 "checked": not open_members,
+                "have": not open_members and all((s.entity_id, s.uid) in have for s, _ in members),
+                "mixed_units": {"mass", "volume"} <= families,
                 "partial": bool(open_members) and len(open_members) < len(members),
                 "cookidoo": any(s.is_cookidoo for s, _ in members),
                 "own": any(not s.is_cookidoo for s, _ in members),
                 "sources": [
-                    {**asdict(s), "done": s.done, "parsed_name": p.name} for s, p in members
+                    {
+                        **asdict(s),
+                        "done": s.done,
+                        "have": (s.entity_id, s.uid) in have,
+                        "parsed_name": p.name,
+                        "quantity": format_quantities(sum_quantities(p.quantities)),
+                        "notes": p.notes,
+                    }
+                    for s, p in members
                 ],
             }
         )
@@ -125,10 +143,13 @@ def _stats(items: list[dict], sources: list[SourceItem]) -> dict:
         entry["done" if s.done else "open"] += 1
     total = len(items)
     done = sum(1 for i in items if i["checked"])
+    have = sum(1 for i in items if i["have"])
     return {
         "total": total,
         "open": total - done,
-        "done": done,
+        "done": done,  # checked in any way (bought or already at home)
+        "bought": done - have,
+        "have": have,
         "progress": round(done / total * 100) if total else 0,
         "merged": sum(1 for i in items if len(i["sources"]) > 1),
         "cookidoo_items": sum(1 for i in items if i["cookidoo"]),

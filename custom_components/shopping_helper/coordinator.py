@@ -55,6 +55,9 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # entity_id -> {uid: status at the time of hiding}. They come back when their status
         # changes (e.g. unchecked in Cookidoo) and are forgotten once they leave the list.
         self.hidden: dict[str, dict[str, str]] = {}
+        # Items marked "already at home": entity_id -> {uid: status}. They are checked at the
+        # source (Cookidoo: "vorhanden") but don't count as purchases.
+        self.have: dict[str, dict[str, str]] = {}
 
     # ------------------------------------------------------------------ settings
     @property
@@ -87,6 +90,7 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.overrides = dict(data.get("overrides", {}))
         self.history = HistoryTracker(data.get("history"))
         self.hidden = {k: dict(v) for k, v in data.get("hidden", {}).items()}
+        self.have = {k: dict(v) for k, v in data.get("have", {}).items()}
 
     def _schedule_save(self) -> None:
         self._store.async_delay_save(
@@ -94,6 +98,7 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "overrides": self.overrides,
                 "history": self.history.as_dict(),
                 "hidden": self.hidden,
+                "have": self.have,
             },
             10,
         )
@@ -111,6 +116,11 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "cookidoo": self._is_cookidoo(entity_id),
                 "available": available,
                 "default": entity_id == self.default_list,
+                "can_add": bool(
+                    state
+                    and int(state.attributes.get(ATTR_SUPPORTED_FEATURES, 0))
+                    & TodoListEntityFeature.CREATE_TODO_ITEM
+                ),
             }
             lists_meta.append(meta)
             if not available:
@@ -142,17 +152,19 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
 
         self._sources = sources
-        if self._prune_hidden():
+        if self._prune_hidden() | self._prune_map(self.have):
             self._schedule_save()
         today = dt_util.now().date().isoformat()
-        if self.history.update(sources, today, self.overrides):
+        not_bought = {f"{e}|{u}" for e, uids in self.have.items() for u in uids}
+        if self.history.update(sources, today, self.overrides, not_bought):
             self._schedule_save()
         return self._build(lists_meta)
 
     def _build(self, lists_meta: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         order = resolve_order(self.settings.get(CONF_CATEGORY_ORDER))
         visible = [s for s in self._sources if not self._is_hidden(s)]
-        result = merge_items(visible, order, self.overrides)
+        have = {(e, u) for e, uids in self.have.items() for u in uids}
+        result = merge_items(visible, order, self.overrides, have)
         result["stats"]["hidden"] = len(self._sources) - len(visible)
         result["lists"] = lists_meta if lists_meta is not None else (self.data or {}).get("lists", [])
         today = dt_util.now().date().isoformat()
@@ -177,16 +189,20 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.hidden.setdefault(entity_id, {})[uid] = status
 
     def _prune_hidden(self) -> bool:
+        return self._prune_map(self.hidden)
+
+    def _prune_map(self, mapping: dict[str, dict[str, str]]) -> bool:
+        """Forget entries whose item left the list or whose status changed elsewhere."""
         current = {(s.entity_id, s.uid): s.status for s in self._sources}
         changed = False
-        for entity_id in list(self.hidden):
-            uids = self.hidden[entity_id]
+        for entity_id in list(mapping):
+            uids = mapping[entity_id]
             for uid, status in list(uids.items()):
                 if current.get((entity_id, uid)) != status:
                     del uids[uid]
                     changed = True
             if not uids:
-                del self.hidden[entity_id]
+                del mapping[entity_id]
                 changed = True
         return changed
 
@@ -229,10 +245,28 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         item = self._find(key)
         status = STATUS_DONE if checked else STATUS_OPEN
         for src in item["sources"]:
+            self.have.get(src["entity_id"], {}).pop(src["uid"], None)  # bought / reopened
             if src["status"] != status:
                 await self._call(
                     "update_item", src["entity_id"], {"item": src["uid"], "status": status}
                 )
+        await self.async_refresh()
+
+    async def async_set_have(self, key: str, have: bool) -> None:
+        """Mark an item as already at home (checked, but not bought) – or undo that."""
+        item = self._find(key)
+        status = STATUS_DONE if have else STATUS_OPEN
+        for src in item["sources"]:
+            entity_id, uid = src["entity_id"], src["uid"]
+            if have:
+                # record first so the history doesn't count the check as a purchase
+                self.have.setdefault(entity_id, {})[uid] = STATUS_DONE
+            else:
+                self.have.get(entity_id, {}).pop(uid, None)
+            if src["status"] != status:
+                await self._call("update_item", entity_id, {"item": uid, "status": status})
+        self.have = {e: u for e, u in self.have.items() if u}
+        self._schedule_save()
         await self.async_refresh()
 
     async def async_add_item(

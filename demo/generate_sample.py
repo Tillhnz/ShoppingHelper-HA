@@ -69,14 +69,15 @@ while day < today - timedelta(days=6):
         iv = REGULARS[n][0]
         next_due[n] = day + timedelta(days=max(1, round(random.gauss(iv, iv * 0.2))))
 
-result = merge_items(SOURCES, resolve_order(None), {})
+result = merge_items(SOURCES, resolve_order(None), {}, {(C, "c10")})  # Salz: already at home
 open_keys = {i["key"] for c in result["categories"] for i in c["items"] if not i["checked"]}
 result["history"] = history.export(today.isoformat())
 result["suggestions"] = history.suggestions(today.isoformat(), open_keys)
 result["statistics"] = history.statistics(today.isoformat())
 result["known_names"] = history.names()
 result["lists"] = [
-    {"entity_id": e, "name": NAMES[e], "cookidoo": e != E, "available": True, "default": e == E}
+    {"entity_id": e, "name": NAMES[e], "cookidoo": e != E, "available": True, "default": e == E,
+     "can_add": e != C}
     for e in (C, Z, E)
 ]
 result["updated"] = "2026-10-25T08:15:00Z"

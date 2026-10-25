@@ -47,6 +47,8 @@
     Object.assign(data.stats, {
       total: items.length, done, open: items.length - done,
       progress: items.length ? Math.round((done / items.length) * 100) : 0,
+      have: items.filter((i) => i.have).length,
+      bought: items.filter((i) => i.checked && !i.have).length,
       merged: items.filter((i) => i.sources.length > 1).length,
     });
     data.stats.lists.forEach((l) => {
@@ -76,9 +78,13 @@
     },
     async callWS(msg) {
       const type = msg.type.split("/")[1];
-      if (type === "check") {
+      if (type === "have") {
         const item = find(msg.key);
-        item.checked = msg.checked; item.partial = false;
+        item.have = msg.have; item.checked = msg.have; item.partial = false;
+        item.sources.forEach((s) => { s.have = msg.have; s.done = msg.have; s.status = msg.have ? "completed" : "needs_action"; });
+      } else if (type === "check") {
+        const item = find(msg.key);
+        item.checked = msg.checked; item.partial = false; item.have = false;
         item.sources.forEach((s) => { s.done = msg.checked; s.status = msg.checked ? "completed" : "needs_action"; });
       } else if (type === "remove") {
         data.categories.forEach((c) => (c.items = c.items.filter((i) => i.key !== msg.key)));

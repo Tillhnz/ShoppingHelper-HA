@@ -29,7 +29,7 @@ er = types.SimpleNamespace(async_get=lambda hass: REG,
     async_entries_for_config_entry=lambda reg, ceid: [e for e in reg.entries.values() if e.config_entry_id == ceid])
 from datetime import datetime
 for n in ["homeassistant","homeassistant.components","homeassistant.helpers","homeassistant.util"]: mod(n)
-mod("homeassistant.components.todo", TodoListEntityFeature=types.SimpleNamespace(DELETE_TODO_ITEM=2))
+mod("homeassistant.components.todo", TodoListEntityFeature=types.SimpleNamespace(CREATE_TODO_ITEM=1, DELETE_TODO_ITEM=2))
 mod("homeassistant.config_entries", ConfigEntry=object)
 mod("homeassistant.const", ATTR_SUPPORTED_FEATURES="supported_features", STATE_UNAVAILABLE="unavailable", STATE_UNKNOWN="unknown")
 mod("homeassistant.core", HomeAssistant=object)
@@ -58,6 +58,10 @@ class Hass:
         if service == "remove_item":
             if not self.st[eid].attributes["supported_features"] & 2: raise HAErr("not supported")
             self.lists[eid] = [i for i in self.lists[eid] if i["uid"] not in data["item"]]
+        if service == "update_item":
+            for i in self.lists[eid]:
+                if i["uid"] == data["item"]:
+                    i["status"] = data["status"]
         if service == "press":
             for e in ("todo.ck_list", "todo.ck_extra"): self.lists[e] = []
         self.sync_states()
@@ -96,6 +100,23 @@ async def main():
     # 5) option off
     hass, c = setup([it("a","Mehl")], [], []); c.config_entry.options = {"clear_cookidoo": False}
     r = await c.async_clear_completed(); print("option off:", r); assert not r["cookidoo_cleared"] and r["cookidoo_hint"] == "disabled_option"
+
+
+async def have_flow():
+    hass, c = setup([it("a", "Salz", "needs_action")], [], [it("x", "Milch", "needs_action")])
+    await c.async_refresh()
+    await c.async_set_have("salz", True)
+    item = next(i for cat in c.data["categories"] for i in cat["items"] if i["key"] == "salz")
+    assert item["have"] and hass.lists["todo.ck_list"][0]["status"] == "completed"
+    assert "salz" not in c.history.purchases  # at home, not bought
+    await c.async_set_checked("milch", True)
+    assert c.history.purchases["milch"]["count"] == 1
+    await c.async_set_have("salz", False)
+    assert hass.lists["todo.ck_list"][0]["status"] == "needs_action" and not c.have
+
+
+def test_have():
+    asyncio.run(have_flow())
 
 
 def test_clear_completed():

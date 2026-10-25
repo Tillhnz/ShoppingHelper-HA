@@ -16,15 +16,15 @@ class ShoppingHelperPanel extends HTMLElement {
     this._data = null;
     this._tab = "list";
     this._filter = "all"; // all | cookidoo | own
-    this._hideDone = false;
     this._search = "";
+    this._showSearch = false;
     this._expanded = null;
     this._pending = new Set();
     this._collapsed = new Set();
     try {
       const saved = JSON.parse(localStorage.getItem("shopping-helper-ui") || "{}");
-      this._hideDone = !!saved.hideDone;
-      this._collapsed = new Set(saved.collapsed || []);
+      // "done" and "have" sections start collapsed
+      this._collapsed = new Set(saved.collapsed || ["__done", "__have"]);
     } catch (e) {
       /* storage not available */
     }
@@ -101,7 +101,7 @@ class ShoppingHelperPanel extends HTMLElement {
     try {
       localStorage.setItem(
         "shopping-helper-ui",
-        JSON.stringify({ hideDone: this._hideDone, collapsed: [...this._collapsed] })
+        JSON.stringify({ collapsed: [...this._collapsed] })
       );
     } catch (e) {
       /* ignore */
@@ -125,25 +125,22 @@ class ShoppingHelperPanel extends HTMLElement {
       <div class="content">
         <section id="list-tab">
           <form class="add card" id="add-form" autocomplete="off">
-            <ha-icon icon="mdi:plus-circle-outline" class="add-icon"></ha-icon>
             <input id="add-input" list="known-names" placeholder="Artikel hinzufügen, z. B. „2 l Milch“" enterkeyhint="done" />
             <datalist id="known-names"></datalist>
-            <select id="add-list" title="Ziel-Liste"></select>
-            <button type="submit" class="primary">Hinzufügen</button>
+            <select id="add-list" title="Ziel-Liste" hidden></select>
+            <button type="submit" class="add-btn" title="Hinzufügen"><ha-icon icon="mdi:plus"></ha-icon></button>
           </form>
           <div id="suggestions"></div>
-          <div class="toolbar">
-            <div class="chips">
-              <button class="chip active" data-filter="all">Alle</button>
-              <button class="chip" data-filter="cookidoo"><span class="dot cookidoo"></span>Cookidoo</button>
-              <button class="chip" data-filter="own"><span class="dot own"></span>Eigene</button>
+          <div class="listbar">
+            <div id="summary" class="summary"></div>
+            <div class="seg" role="group" aria-label="Filter">
+              <button class="active" data-filter="all">Alle</button>
+              <button data-filter="cookidoo">Cookidoo</button>
+              <button data-filter="own">Eigene</button>
             </div>
-            <div class="toolbar-right">
-              <div class="search"><ha-icon icon="mdi:magnify"></ha-icon><input id="search" placeholder="Suchen" /></div>
-              <button class="chip toggle" id="hide-done"><ha-icon icon="mdi:eye-off-outline"></ha-icon>Erledigte</button>
-            </div>
+            <button class="icon-btn small" id="search-toggle" title="Suchen"><ha-icon icon="mdi:magnify"></ha-icon></button>
           </div>
-          <div id="progress"></div>
+          <div class="search" id="search-row" hidden><ha-icon icon="mdi:magnify"></ha-icon><input id="search" placeholder="In der Liste suchen" /></div>
           <div id="list"></div>
         </section>
         <section id="stats-tab" hidden></section>
@@ -173,13 +170,16 @@ class ShoppingHelperPanel extends HTMLElement {
         this._render();
       })
     );
-    const hide = root.getElementById("hide-done");
-    hide.classList.toggle("active", this._hideDone);
-    hide.addEventListener("click", () => {
-      this._hideDone = !this._hideDone;
-      hide.classList.toggle("active", this._hideDone);
-      this._saveUi();
-      this._render();
+    root.getElementById("search-toggle").addEventListener("click", () => {
+      this._showSearch = !this._showSearch;
+      const row = root.getElementById("search-row");
+      row.hidden = !this._showSearch;
+      if (this._showSearch) root.getElementById("search").focus();
+      else {
+        root.getElementById("search").value = "";
+        this._search = "";
+        this._render();
+      }
     });
     root.getElementById("search").addEventListener("input", (ev) => {
       this._search = ev.target.value.trim().toLowerCase();
@@ -222,9 +222,18 @@ class ShoppingHelperPanel extends HTMLElement {
     if (this._onClearClick(ev)) return;
     const more = ev.target.closest("[data-more]");
     if (more) {
-      ev.stopPropagation();
       this._expanded = this._expanded === more.dataset.more ? null : more.dataset.more;
       this._render();
+      return;
+    }
+    const haveBtn = ev.target.closest("[data-have]");
+    if (haveBtn) {
+      const row = haveBtn.closest("[data-key]");
+      const key = row.dataset.key;
+      const have = row.dataset.have !== "true";
+      this._pending.add(key);
+      row.classList.add("pending");
+      this._ws({ type: "have", key, have }, have ? "Als vorhanden markiert" : "Wieder auf der Liste");
       return;
     }
     const del = ev.target.closest("[data-remove]");
@@ -240,6 +249,13 @@ class ShoppingHelperPanel extends HTMLElement {
     const row = ev.target.closest("[data-key]");
     if (row) {
       const key = row.dataset.key;
+      // tapping a "have" item puts it back on the list; otherwise toggle bought
+      if (row.dataset.have === "true") {
+        this._pending.add(key);
+        row.classList.add("pending");
+        this._ws({ type: "have", key, have: false }, "Wieder auf der Liste");
+        return;
+      }
       const checked = row.dataset.checked !== "true";
       this._pending.add(key);
       row.classList.toggle("checked", checked);
@@ -346,21 +362,15 @@ class ShoppingHelperPanel extends HTMLElement {
       return;
     }
     const colors = Object.fromEntries((this._data.all_categories || []).map((c) => [c.id, c.color]));
-    const detail = (s) => {
-      if (s.interval) return `${s.reason} · alle ~${s.interval} Tage`;
-      return s.reason;
-    };
-    el.innerHTML = `<div class="suggest">
-      <div class="suggest-title"><ha-icon icon="mdi:lightbulb-on-outline"></ha-icon>Vorschläge</div>
+    const detail = (s) => (s.interval ? `${s.reason} · alle ~${s.interval} Tage` : s.reason);
+    el.innerHTML = `<div class="suggest" aria-label="Vorschläge">
+      <ha-icon class="suggest-icon" icon="mdi:lightbulb-on-outline" title="Vorschläge aus deinen Einkäufen"></ha-icon>
       <div class="suggest-row">${items
         .map(
-          (s) => `<div class="suggestion ${s.reason === "fällig" ? "due" : ""}" style="--cat:${esc(colors[s.category] || "#9e9e9e")}">
-            <button class="sugg-add" data-sugg-add="${esc(s.key)}" data-name="${esc(s.name)}" title="${esc(s.name)} hinzufügen">
-              <ha-icon icon="mdi:plus"></ha-icon>
-              <span class="sugg-text"><span class="sugg-name">${esc(s.name)}</span><span class="sugg-detail">${esc(detail(s))}</span></span>
-            </button>
-            <button class="sugg-x" data-sugg-snooze="${esc(s.key)}" title="Eine Woche nicht vorschlagen"><ha-icon icon="mdi:close"></ha-icon></button>
-          </div>`
+          (s) => `<span class="suggestion ${s.reason === "fällig" ? "due" : ""}" style="--cat:${esc(colors[s.category] || "#9e9e9e")}" title="${esc(s.name)}: ${esc(detail(s))}">
+            <button class="sugg-add" data-sugg-add="${esc(s.key)}" data-name="${esc(s.name)}"><ha-icon icon="mdi:plus"></ha-icon>${esc(s.name)}</button>
+            <button class="sugg-x" data-sugg-snooze="${esc(s.key)}" title="Eine Woche nicht vorschlagen" aria-label="${esc(s.name)} eine Woche nicht vorschlagen"><ha-icon icon="mdi:close"></ha-icon></button>
+          </span>`
         )
         .join("")}</div>
     </div>`;
@@ -386,7 +396,7 @@ class ShoppingHelperPanel extends HTMLElement {
 
   _renderListSelect() {
     const select = this.shadowRoot.getElementById("add-list");
-    const lists = (this._data.lists || []).filter((l) => l.available);
+    const lists = (this._data.lists || []).filter((l) => l.available && l.can_add !== false);
     const sig = lists.map((l) => l.entity_id + l.name).join("|");
     if (select.dataset.sig === sig) return;
     const current = select.value;
@@ -394,13 +404,13 @@ class ShoppingHelperPanel extends HTMLElement {
       .map((l) => `<option value="${esc(l.entity_id)}" ${l.default ? "selected" : ""}>${esc(l.name)}</option>`)
       .join("");
     if (current && lists.some((l) => l.entity_id === current)) select.value = current;
+    select.hidden = lists.length < 2;
     select.dataset.sig = sig;
   }
 
   _visible(item) {
     if (this._filter === "cookidoo" && !item.cookidoo) return false;
     if (this._filter === "own" && !item.own) return false;
-    if (this._hideDone && item.checked && !this._pending.has(item.key)) return false;
     if (this._search && !item.name.toLowerCase().includes(this._search)) return false;
     return true;
   }
@@ -410,53 +420,87 @@ class ShoppingHelperPanel extends HTMLElement {
     const root = this.shadowRoot;
     this._renderSuggestions();
 
-    root.getElementById("progress").innerHTML = stats.total
-      ? `<div class="progress-wrap">
-           <div class="progress-text"><b>${stats.open}</b> offen · ${stats.done} erledigt${
-             stats.merged ? ` · <span class="merged-hint">${stats.merged} zusammengeführt</span>` : ""
-           }</div>
-           <div class="progress"><div style="width:${stats.progress}%"></div></div>
-         </div>`
+    root.getElementById("summary").innerHTML = stats.total
+      ? `<span><b>${stats.open}</b> offen</span>
+         <span class="progress" title="${stats.progress}% erledigt"><span style="width:${stats.progress}%"></span></span>`
       : "";
 
+    const keep = (i) => this._pending.has(i.key); // keep a just-tapped row in place until the update
+    const openItem = (i) => !i.checked || (keep(i) && !i.have);
     const sections = categories
       .map((cat) => {
-        const items = cat.items.filter((i) => this._visible(i));
+        const items = cat.items.filter((i) => this._visible(i) && openItem(i));
         if (!items.length) return "";
         const collapsed = this._collapsed.has(cat.id) && !this._search;
-        const openCount = items.filter((i) => !i.checked).length;
-        return `<div class="category card" style="--cat:${esc(cat.color)}">
-          <div class="cat-header" data-toggle-cat="${esc(cat.id)}">
+        return `<section class="category card" style="--cat:${esc(cat.color)}">
+          <button class="cat-header" data-toggle-cat="${esc(cat.id)}" aria-expanded="${!collapsed}">
             <span class="cat-icon"><ha-icon icon="${esc(cat.icon)}"></ha-icon></span>
             <span class="cat-name">${esc(cat.name)}</span>
-            <span class="cat-count">${openCount ? openCount : "✓"}</span>
+            <span class="cat-count">${items.length}</span>
             <ha-icon class="chevron ${collapsed ? "" : "open"}" icon="mdi:chevron-down"></ha-icon>
-          </div>
-          ${collapsed ? "" : `<ul>${items.map((i) => this._itemHtml(i, all_categories)).join("")}</ul>`}
-        </div>`;
+          </button>
+          ${collapsed ? "" : `<ul>${items.map((i) => this._itemHtml(i, all_categories, cat.color)).join("")}</ul>`}
+        </section>`;
       })
       .join("");
 
-    root.getElementById("list").innerHTML =
-      sections ||
-      `<div class="card empty">
-         <ha-icon icon="mdi:cart-check"></ha-icon>
-         <p>${stats.total ? "Keine passenden Artikel." : "Alles erledigt – die Listen sind leer."}</p>
-       </div>`;
+    const all = categories.flatMap((c) => c.items.map((i) => ({ ...i, color: c.color }))).filter((i) => this._visible(i));
+    const bought = all.filter((i) => i.checked && !i.have && !keep(i));
+    const have = all.filter((i) => i.have);
+    const group = (id, title, icon, items, extra = "") => {
+      if (!items.length) return "";
+      const collapsed = this._collapsed.has(id) && !this._search;
+      return `<section class="category card done-group">
+        <button class="cat-header" data-toggle-cat="${id}" aria-expanded="${!collapsed}">
+          <span class="cat-icon plain"><ha-icon icon="${icon}"></ha-icon></span>
+          <span class="cat-name">${title}</span>
+          <span class="cat-count">${items.length}</span>
+          <ha-icon class="chevron ${collapsed ? "" : "open"}" icon="mdi:chevron-down"></ha-icon>
+        </button>
+        ${collapsed ? "" : `<ul>${items.map((i) => this._itemHtml(i, all_categories, i.color)).join("")}</ul>${extra}`}
+      </section>`;
+    };
 
-    root.getElementById("list").insertAdjacentHTML("beforeend", this._clearFooter(stats));
+    const empty = !sections
+      ? `<div class="card empty">
+          <ha-icon icon="mdi:cart-check"></ha-icon>
+          <p>${stats.total ? (this._search || this._filter !== "all" ? "Keine passenden Artikel." : "Alles erledigt.") : "Die Listen sind leer."}</p>
+        </div>`
+      : "";
+
+    root.getElementById("list").innerHTML =
+      (sections || empty) +
+      group("__done", "Im Wagen", "mdi:cart-check", bought) +
+      group("__have", "Bereits vorhanden", "mdi:home-outline", have) +
+      this._clearFooter(stats);
   }
 
-  _itemHtml(item, allCategories) {
-    const pending = this._pending.has(item.key);
-    const sources = item.sources
-      .map(
-        (s) =>
-          `<span class="badge ${s.is_cookidoo ? "cookidoo" : "own"} ${s.done ? "done" : ""}" title="${esc(
-            s.summary
-          )}${s.description ? " – " + esc(s.description) : ""}">${esc(s.list_name)}</span>`
-      )
+  _breakdown(item) {
+    const rows = item.sources
+      .map((s) => {
+        const original = s.description ? `${s.summary} · ${s.description}` : s.summary;
+        const state = s.have ? "vorhanden" : s.done ? "gekauft" : "";
+        return `<li>
+          <span class="dot ${s.is_cookidoo ? "cookidoo" : "own"}"></span>
+          <span class="b-list">${esc(s.list_name)}</span>
+          <span class="b-orig">„${esc(original)}“${state ? ` <span class="b-state">${state}</span>` : ""}</span>
+          <span class="b-qty">${esc(s.quantity || "–")}</span>
+        </li>`;
+      })
       .join("");
+    const notes = item.notes.length ? `<p class="b-note">Notiz: ${esc(item.notes.join(", "))}</p>` : "";
+    const mixed = item.mixed_units ? `<p class="b-note">Gramm und Liter mit ≈ 1 g/ml zusammengerechnet.</p>` : "";
+    const partial = item.partial ? `<p class="b-note">Summe enthält nur die noch offenen Einträge.</p>` : "";
+    return `<div class="breakdown">
+      <div class="b-title">${item.sources.length > 1 ? `Zusammengefasst aus ${item.sources.length} Einträgen` : "Herkunft"}</div>
+      <ul>${rows}</ul>
+      ${item.sources.length > 1 && item.quantity ? `<div class="b-total"><span>Gesamt</span><b>${esc(item.quantity)}</b></div>` : ""}
+      ${partial}${mixed}${notes}
+    </div>`;
+  }
+
+  _itemHtml(item, allCategories, color) {
+    const pending = this._pending.has(item.key);
     const expanded = this._expanded === item.key;
     const options = [`<option value="">Automatisch</option>`]
       .concat(
@@ -466,26 +510,35 @@ class ShoppingHelperPanel extends HTMLElement {
         )
       )
       .join("");
-    return `<li class="item ${item.checked ? "checked" : ""} ${item.partial ? "partial" : ""} ${pending ? "pending" : ""}"
-              data-key="${esc(item.key)}" data-checked="${item.checked}">
-      <span class="check"><ha-icon icon="mdi:check"></ha-icon></span>
-      <div class="item-main">
-        <div class="item-line">
-          <span class="item-name">${esc(item.name)}</span>
-          ${item.quantity ? `<span class="qty">${esc(item.quantity)}</span>` : ""}
-          ${item.sources.length > 1 ? `<span class="merge" title="Aus ${item.sources.length} Einträgen zusammengeführt"><ha-icon icon="mdi:call-merge"></ha-icon>${item.sources.length}</span>` : ""}
-        </div>
-        <div class="item-sub">${sources}${item.notes.length ? `<span class="note">${esc(item.notes.join(", "))}</span>` : ""}</div>
+    const dots = item.sources
+      .map((s) => `<span class="dot ${s.is_cookidoo ? "cookidoo" : "own"}" title="${esc(s.list_name)}"></span>`)
+      .join("");
+    const showHave = !item.checked || item.have;
+    return `<li class="item ${item.checked ? "checked" : ""} ${item.have ? "have" : ""} ${item.partial ? "partial" : ""} ${pending ? "pending" : ""} ${expanded ? "expanded" : ""}"
+              style="--cat:${esc(color)}" data-key="${esc(item.key)}" data-checked="${item.checked}" data-have="${item.have}">
+      <div class="row">
+        <span class="check">${item.have ? `<ha-icon icon="mdi:home"></ha-icon>` : `<ha-icon icon="mdi:check"></ha-icon>`}</span>
+        <span class="item-name">${esc(item.name)}</span>
+        <span class="dots">${dots}</span>
+        ${item.quantity ? `<span class="qty">${esc(item.quantity)}</span>` : ""}
         ${
-          expanded
-            ? `<div class="details">
-                <label>Kategorie <select data-category-for="${esc(item.key)}">${options}</select></label>
-                <button class="text-btn danger" data-remove="${esc(item.key)}"><ha-icon icon="mdi:delete-outline"></ha-icon>Löschen</button>
-              </div>`
+          showHave
+            ? `<button class="have-btn ${item.have ? "on" : ""}" data-have title="${item.have ? "Doch einkaufen" : "Bereits vorhanden"}" aria-label="${esc(item.name)}: ${item.have ? "doch einkaufen" : "bereits vorhanden"}"><ha-icon icon="${item.have ? "mdi:home" : "mdi:home-outline"}"></ha-icon></button>`
             : ""
         }
+        <button class="icon-btn small more" data-more="${esc(item.key)}" title="Details" aria-expanded="${expanded}"><ha-icon icon="mdi:chevron-down"></ha-icon></button>
       </div>
-      <button class="icon-btn small" data-more="${esc(item.key)}" title="Mehr"><ha-icon icon="mdi:dots-vertical"></ha-icon></button>
+      ${
+        expanded
+          ? `<div class="details">
+              ${this._breakdown(item)}
+              <div class="detail-actions">
+                <label>Kategorie <select data-category-for="${esc(item.key)}">${options}</select></label>
+                <button class="text-btn danger" data-remove="${esc(item.key)}"><ha-icon icon="mdi:delete-outline"></ha-icon>Löschen</button>
+              </div>
+            </div>`
+          : ""
+      }
     </li>`;
   }
 
@@ -497,8 +550,8 @@ class ShoppingHelperPanel extends HTMLElement {
     el.innerHTML = `
       <div class="kpis">
         ${this._kpi("mdi:cart-outline", stats.open ?? 0, "Offen")}
-        ${this._kpi("mdi:check-circle-outline", stats.done ?? 0, "Erledigt")}
-        ${this._kpi("mdi:shape-outline", openCats.length, "Kategorien")}
+        ${this._kpi("mdi:cart-check", stats.bought ?? stats.done ?? 0, "Im Wagen")}
+        ${this._kpi("mdi:home-outline", stats.have ?? 0, "Bereits vorhanden")}
         ${this._kpi("mdi:call-merge", stats.merged ?? 0, "Zusammengeführt")}
       </div>
       <div class="grid">
@@ -824,105 +877,104 @@ const STYLES = `
     border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--sh-divider));
   }
   /* add form */
-  .add { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; margin-bottom: 12px; }
-  .add-icon { color: var(--primary-color); flex-shrink: 0; }
+  .add { display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 14px; margin-bottom: 10px; }
   .add input {
     flex: 1; min-width: 0; border: none; background: transparent; font-size: 16px;
-    color: var(--primary-text-color); padding: 10px 4px; outline: none;
+    color: var(--primary-text-color); padding: 10px 0; outline: none;
   }
   select {
     font: inherit; font-size: 14px; color: var(--primary-text-color);
     background: var(--secondary-background-color, transparent);
-    border: 1px solid var(--sh-divider); border-radius: 8px; padding: 7px 8px; max-width: 170px;
+    border: 1px solid var(--sh-divider); border-radius: 8px; padding: 6px 8px; max-width: 160px;
   }
-  .primary {
-    background: var(--primary-color); color: var(--text-primary-color, #fff); border: none;
-    border-radius: 8px; padding: 9px 16px; cursor: pointer; font-weight: 500;
+  .add-btn {
+    width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--primary-color); color: var(--text-primary-color, #fff);
+    display: inline-flex; align-items: center; justify-content: center;
   }
-  /* toolbar */
-  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-  .toolbar-right { display: flex; gap: 8px; align-items: center; flex: 1; justify-content: flex-end; }
-  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
-  .chip {
-    border: 1px solid var(--sh-divider); background: var(--sh-card); border-radius: 18px;
-    padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: 14px;
-    --mdc-icon-size: 18px;
-  }
-  .chip.active { background: var(--primary-color); color: var(--text-primary-color, #fff); border-color: var(--primary-color); }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+  /* list bar: summary + filter */
+  .listbar { display: flex; align-items: center; gap: 10px; margin: 0 2px 10px; }
+  .summary { flex: 1; display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--sh-muted); min-width: 0; }
+  .summary b { color: var(--primary-text-color); font-size: 16px; font-variant-numeric: tabular-nums; }
+  .progress { flex: 1; max-width: 140px; height: 4px; border-radius: 2px; background: var(--sh-divider); overflow: hidden; }
+  .progress > span { display: block; height: 100%; background: var(--success-color, #43a047); transition: width .4s; }
+  .seg { display: inline-flex; border: 1px solid var(--sh-divider); border-radius: 18px; overflow: hidden; flex-shrink: 0; }
+  .seg button { background: none; border: none; cursor: pointer; padding: 5px 11px; font-size: 13px; color: var(--sh-muted); }
+  .seg button + button { border-left: 1px solid var(--sh-divider); }
+  .seg button.active { background: color-mix(in srgb, var(--primary-color) 14%, transparent); color: var(--primary-text-color); font-weight: 500; }
   .search {
-    display: flex; align-items: center; gap: 4px; border: 1px solid var(--sh-divider); border-radius: 18px;
-    padding: 0 10px; background: var(--sh-card); --mdc-icon-size: 18px; color: var(--sh-muted);
-    flex: 1; max-width: 220px;
+    display: flex; align-items: center; gap: 6px; border: 1px solid var(--sh-divider); border-radius: 18px;
+    padding: 0 12px; background: var(--sh-card); --mdc-icon-size: 18px; color: var(--sh-muted); margin-bottom: 10px;
   }
-  .search input { border: none; background: transparent; outline: none; padding: 7px 0; font-size: 14px; color: var(--primary-text-color); width: 100%; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .search input { border: none; background: transparent; outline: none; padding: 8px 0; font-size: 14px; color: var(--primary-text-color); width: 100%; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
   .dot.cookidoo { background: var(--sh-cookidoo); }
   .dot.own { background: var(--sh-own); }
-  /* progress */
-  .progress-wrap { margin: 0 2px 14px; }
-  .progress-text { font-size: 14px; color: var(--sh-muted); margin-bottom: 6px; }
-  .progress-text b { color: var(--primary-text-color); font-size: 16px; }
-  .merged-hint { color: var(--primary-color); }
-  .progress { height: 6px; border-radius: 3px; background: var(--sh-divider); overflow: hidden; }
-  .progress > div { height: 100%; background: var(--success-color, #43a047); border-radius: 3px; transition: width .4s; }
   /* categories */
-  .category { margin-bottom: 12px; overflow: hidden; }
+  .category { margin-bottom: 10px; overflow: hidden; }
   .cat-header {
-    display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; user-select: none;
-    border-left: 4px solid var(--cat);
+    width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 12px; cursor: pointer;
+    background: none; border: none; text-align: left; user-select: none;
   }
   .cat-icon {
-    width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    background: color-mix(in srgb, var(--cat) 18%, transparent); color: var(--cat); --mdc-icon-size: 18px;
+    width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: color-mix(in srgb, var(--cat) 16%, transparent); color: var(--cat); --mdc-icon-size: 16px; flex-shrink: 0;
   }
+  .cat-icon.plain { background: var(--secondary-background-color, rgba(127,127,127,.12)); color: var(--sh-muted); }
   .cat-name { flex: 1; font-weight: 500; font-size: 15px; }
-  .cat-count {
-    min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px; font-size: 13px; font-weight: 600;
-    display: inline-flex; align-items: center; justify-content: center;
-    background: color-mix(in srgb, var(--cat) 20%, transparent);
-  }
-  .chevron { color: var(--sh-muted); transition: transform .2s; transform: rotate(-90deg); }
+  .cat-count { font-size: 13px; color: var(--sh-muted); font-variant-numeric: tabular-nums; }
+  .chevron { color: var(--sh-muted); transition: transform .2s; transform: rotate(-90deg); --mdc-icon-size: 20px; }
   .chevron.open { transform: rotate(0); }
+  .done-group { background: transparent; box-shadow: none; }
   ul { list-style: none; margin: 0; padding: 0; }
-  .item {
-    display: flex; align-items: flex-start; gap: 12px; padding: 10px 6px 10px 16px;
-    border-top: 1px solid var(--sh-divider); cursor: pointer; transition: opacity .2s, background .15s;
-  }
-  .item:hover { background: rgba(127,127,127,.06); }
-  .item.pending { opacity: .55; }
+  .item { border-top: 1px solid var(--sh-divider); transition: opacity .2s; }
+  .item.pending { opacity: .5; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 6px 4px 6px 14px; min-height: 46px; cursor: pointer; }
+  .row:hover { background: rgba(127,127,127,.05); }
   .check {
-    width: 22px; height: 22px; margin-top: 1px; border-radius: 50%; border: 2px solid var(--cat);
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0; --mdc-icon-size: 15px;
+    width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--cat);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; --mdc-icon-size: 14px;
     color: transparent; transition: background .15s;
   }
-  .item.partial .check { background: linear-gradient(90deg, color-mix(in srgb, var(--cat) 45%, transparent) 50%, transparent 50%); }
+  .item.partial .check { background: linear-gradient(90deg, color-mix(in srgb, var(--cat) 40%, transparent) 50%, transparent 50%); }
   .item.checked .check { background: var(--cat); color: #fff; }
+  .item.have .check { background: transparent; border-color: var(--sh-muted); color: var(--sh-muted); }
+  .item-name { flex: 1; min-width: 0; font-size: 16px; overflow-wrap: anywhere; }
   .item.checked .item-name { text-decoration: line-through; color: var(--sh-muted); }
-  .item.checked .qty { opacity: .5; }
-  .item-main { flex: 1; min-width: 0; }
-  .item-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .item-name { font-size: 16px; }
-  .qty {
-    font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
-    background: var(--secondary-background-color, rgba(127,127,127,.12)); white-space: nowrap;
+  .item.have .item-name { text-decoration: none; }
+  .dots { display: inline-flex; gap: 3px; flex-shrink: 0; }
+  .qty { font-size: 14px; color: var(--sh-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .have-btn {
+    width: 34px; height: 34px; border-radius: 50%; border: none; background: none; cursor: pointer; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center; color: var(--sh-muted); --mdc-icon-size: 19px;
   }
-  .merge { font-size: 12px; color: var(--primary-color); display: inline-flex; align-items: center; gap: 2px; --mdc-icon-size: 14px; }
-  .item-sub { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; align-items: center; }
-  .badge { font-size: 11px; padding: 1px 7px; border-radius: 8px; border: 1px solid; white-space: nowrap; }
-  .badge.cookidoo { color: var(--sh-cookidoo); border-color: color-mix(in srgb, var(--sh-cookidoo) 45%, transparent); }
-  .badge.own { color: var(--sh-own); border-color: color-mix(in srgb, var(--sh-own) 45%, transparent); }
-  .badge.done { opacity: .5; text-decoration: line-through; }
-  .note { font-size: 12px; color: var(--sh-muted); font-style: italic; }
-  .details { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--sh-muted); cursor: default; }
-  .details label { display: flex; gap: 6px; align-items: center; }
+  .have-btn:hover { background: rgba(127,127,127,.12); color: var(--primary-text-color); }
+  .have-btn.on { color: var(--primary-color); }
+  .more ha-icon { transition: transform .2s; }
+  .item.expanded .more ha-icon { transform: rotate(180deg); }
+  .details { padding: 2px 12px 12px 46px; cursor: default; }
+  .breakdown { background: var(--secondary-background-color, rgba(127,127,127,.08)); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+  .b-title { font-size: 12px; font-weight: 500; color: var(--sh-muted); margin-bottom: 6px; letter-spacing: .02em; }
+  .breakdown li { display: grid; grid-template-columns: 8px minmax(70px, auto) 1fr auto; gap: 8px; align-items: baseline; padding: 3px 0; }
+  .breakdown .dot { align-self: center; }
+  .b-list { color: var(--sh-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+  .b-orig { min-width: 0; overflow-wrap: anywhere; }
+  .b-state { font-size: 11px; color: var(--sh-muted); border: 1px solid var(--sh-divider); border-radius: 6px; padding: 0 5px; margin-left: 4px; }
+  .b-qty { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .b-total { display: flex; justify-content: space-between; border-top: 1px solid var(--sh-divider); margin-top: 6px; padding-top: 6px; }
+  .b-total b { font-size: 14px; font-variant-numeric: tabular-nums; }
+  .b-note { margin: 6px 0 0; color: var(--sh-muted); font-size: 12px; }
+  .detail-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--sh-muted); }
+  .detail-actions label { display: flex; gap: 6px; align-items: center; }
   .text-btn {
     background: none; border: none; cursor: pointer; color: var(--primary-color);
     display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 8px; --mdc-icon-size: 18px;
   }
   .text-btn:hover { background: rgba(127,127,127,.1); }
   .text-btn.danger { color: var(--error-color, #db4437); }
-  .footer-actions { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin: 8px 0 16px; font-size: 14px; }
-  .empty { padding: 40px 16px; text-align: center; color: var(--sh-muted); --mdc-icon-size: 48px; }
+  .footer-actions { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin: 4px 0 16px; font-size: 14px; }
+  .empty { padding: 36px 16px; text-align: center; color: var(--sh-muted); --mdc-icon-size: 44px; margin-bottom: 10px; }
   .empty.error { color: var(--error-color, #db4437); }
   .loading { text-align: center; padding: 48px; color: var(--sh-muted); }
   /* stats */
@@ -979,25 +1031,22 @@ const STYLES = `
   .top-track { flex: 1; height: 8px; border-radius: 4px; background: var(--secondary-background-color, rgba(127,127,127,.1)); overflow: hidden; }
   .top-track span { display: block; height: 100%; background: var(--primary-color); border-radius: 4px; opacity: .8; }
   /* suggestions */
-  .suggest { margin: -2px 0 14px; }
-  .suggest-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--sh-muted); margin: 0 2px 8px; --mdc-icon-size: 16px; }
-  .suggest-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+  .suggest { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
+  .suggest-icon { color: var(--sh-muted); --mdc-icon-size: 18px; flex-shrink: 0; margin-left: 4px; }
+  .suggest-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 1px; }
+  .suggest-row::-webkit-scrollbar { display: none; }
   .suggestion {
-    display: flex; align-items: stretch; flex-shrink: 0; border-radius: 12px; overflow: hidden;
-    background: var(--sh-card); border: 1px solid var(--sh-divider);
+    display: inline-flex; align-items: center; flex-shrink: 0; border-radius: 16px;
+    border: 1px dashed var(--sh-divider); background: transparent;
   }
-  .suggestion.due { border-color: color-mix(in srgb, var(--cat) 55%, transparent); }
+  .suggestion.due { border-style: solid; border-color: color-mix(in srgb, var(--cat) 50%, transparent); }
   .sugg-add {
-    display: flex; align-items: center; gap: 8px; background: none; border: none; cursor: pointer;
-    padding: 7px 4px 7px 10px; text-align: left; --mdc-icon-size: 18px;
+    display: inline-flex; align-items: center; gap: 4px; background: none; border: none; cursor: pointer;
+    padding: 5px 2px 5px 9px; font-size: 13px; white-space: nowrap; --mdc-icon-size: 15px;
   }
   .sugg-add ha-icon { color: var(--cat); }
-  .sugg-add:hover, .sugg-x:hover { background: rgba(127,127,127,.1); }
-  .sugg-text { display: flex; flex-direction: column; line-height: 1.25; }
-  .sugg-name { font-size: 14px; font-weight: 500; white-space: nowrap; }
-  .sugg-detail { font-size: 11px; color: var(--sh-muted); white-space: nowrap; }
-  .suggestion.due .sugg-detail { color: var(--cat); }
-  .sugg-x { background: none; border: none; cursor: pointer; color: var(--sh-muted); padding: 0 8px; --mdc-icon-size: 16px; }
+  .sugg-x { background: none; border: none; cursor: pointer; color: var(--sh-muted); padding: 5px 8px 5px 4px; --mdc-icon-size: 13px; display: inline-flex; }
+  .sugg-add:hover, .sugg-x:hover { color: var(--primary-text-color); }
   /* insights */
   .sub { margin: -8px 0 12px; }
   .bar-bought { fill: color-mix(in srgb, var(--primary-color) 55%, transparent); }
@@ -1044,11 +1093,13 @@ const STYLES = `
     .tab { padding: 10px 10px 12px; font-size: 14px; gap: 4px; }
     .kpis { grid-template-columns: repeat(2, 1fr); }
     .grid, .top { grid-template-columns: 1fr; }
-    .add { flex-wrap: wrap; }
-    .add input { flex-basis: calc(100% - 40px); }
-    .add select { flex: 1; max-width: none; }
-    .toolbar-right { justify-content: stretch; }
-    .search { max-width: none; }
+    .add select { max-width: 110px; }
+    .seg button { padding: 5px 9px; }
+    .progress { display: none; }
+    .details { padding-left: 14px; }
+    .breakdown li { grid-template-columns: 8px 1fr auto; }
+    .b-list { grid-column: 2 / 4; max-width: none; font-size: 12px; }
+    .breakdown .dot { grid-row: 1 / 3; }
   }
 `;
 

@@ -66,3 +66,21 @@ def test_history_counts_added_and_done():
     assert {t["name"] for t in export["top"]} == {"Milch", "Brot"}
     restored = HistoryTracker(tracker.as_dict())
     assert restored.seen == tracker.seen
+
+
+def test_have_items_and_breakdown():
+    result = merge_items(
+        [
+            src("todo.cookidoo", "1", "Salz", "1 Prise", status="completed", cookidoo=True),
+            src("todo.cookidoo", "2", "Milch", "300 g", cookidoo=True),
+            src("todo.own", "3", "2 l Milch"),
+        ],
+        resolve_order(None),
+        have={("todo.cookidoo", "1")},
+    )
+    items = _items(result)
+    assert items["salz"]["have"] and items["salz"]["checked"]
+    milk = items["milch"]
+    assert milk["mixed_units"] and milk["quantity"] == "2,3 l"
+    assert [s["quantity"] for s in milk["sources"]] == ["300 g", "2 l"]
+    assert result["stats"]["have"] == 1 and result["stats"]["bought"] == 0

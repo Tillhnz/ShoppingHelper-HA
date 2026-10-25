@@ -16,6 +16,8 @@
      "quantities": [],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": false,
      "own": true,
@@ -29,7 +31,10 @@
        "status": "needs_action",
        "is_cookidoo": false,
        "done": false,
-       "parsed_name": "Bananen"
+       "have": false,
+       "parsed_name": "Bananen",
+       "quantity": "",
+       "notes": []
       }
      ]
     },
@@ -47,6 +52,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": true,
      "own": false,
@@ -60,7 +67,10 @@
        "status": "needs_action",
        "is_cookidoo": true,
        "done": false,
-       "parsed_name": "Basilikum"
+       "have": false,
+       "parsed_name": "Basilikum",
+       "quantity": "1 Bund",
+       "notes": []
       }
      ]
     },
@@ -78,6 +88,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": true,
      "own": false,
@@ -91,7 +103,10 @@
        "status": "needs_action",
        "is_cookidoo": true,
        "done": false,
-       "parsed_name": "Knoblauchzehen"
+       "have": false,
+       "parsed_name": "Knoblauchzehen",
+       "quantity": "3 Stück",
+       "notes": []
       }
      ]
     },
@@ -109,6 +124,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": true,
      "own": true,
@@ -122,7 +139,10 @@
        "status": "needs_action",
        "is_cookidoo": true,
        "done": false,
-       "parsed_name": "Zwiebeln"
+       "have": false,
+       "parsed_name": "Zwiebeln",
+       "quantity": "2 Stück",
+       "notes": []
       },
       {
        "entity_id": "todo.einkaufsliste",
@@ -133,7 +153,10 @@
        "status": "needs_action",
        "is_cookidoo": false,
        "done": false,
-       "parsed_name": "Zwiebel"
+       "have": false,
+       "parsed_name": "Zwiebel",
+       "quantity": "",
+       "notes": []
       }
      ]
     }
@@ -162,6 +185,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": false,
      "own": true,
@@ -175,7 +200,10 @@
        "status": "needs_action",
        "is_cookidoo": false,
        "done": false,
-       "parsed_name": "Brötchen"
+       "have": false,
+       "parsed_name": "Brötchen",
+       "quantity": "6 Stück",
+       "notes": []
       }
      ]
     }
@@ -204,6 +232,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": true,
      "own": false,
@@ -217,7 +247,10 @@
        "status": "needs_action",
        "is_cookidoo": true,
        "done": false,
-       "parsed_name": "Butter"
+       "have": false,
+       "parsed_name": "Butter",
+       "quantity": "120 g",
+       "notes": []
       }
      ]
     },
@@ -235,6 +268,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": false,
      "own": true,
@@ -248,7 +283,10 @@
        "status": "needs_action",
        "is_cookidoo": false,
        "done": false,
-       "parsed_name": "Eier"
+       "have": false,
+       "parsed_name": "Eier",
+       "quantity": "10 Stück",
+       "notes": []
       }
      ]
     },
@@ -266,6 +304,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": true,
      "partial": false,
      "cookidoo": true,
      "own": true,
@@ -279,7 +319,10 @@
        "status": "needs_action",
        "is_cookidoo": true,
        "done": false,
-       "parsed_name": "Milch"
+       "have": false,
+       "parsed_name": "Milch",
+       "quantity": "300 g",
+       "notes": []
       },
       {
        "entity_id": "todo.einkaufsliste",
@@ -290,7 +333,10 @@
        "status": "needs_action",
        "is_cookidoo": false,
        "done": false,
-       "parsed_name": "Milch"
+       "have": false,
+       "parsed_name": "Milch",
+       "quantity": "2 l",
+       "notes": []
       }
      ]
     },
@@ -308,6 +354,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": true,
      "own": false,
@@ -321,7 +369,10 @@
        "status": "needs_action",
        "is_cookidoo": true,
        "done": false,
-       "parsed_name": "Parmesan"
+       "have": false,
+       "parsed_name": "Parmesan",
+       "quantity": "60 g",
+       "notes": []
       }
      ]
     },
@@ -334,6 +385,8 @@
      "quantities": [],
      "notes": [],
      "checked": true,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": false,
      "own": true,
@@ -347,7 +400,10 @@
        "status": "completed",
        "is_cookidoo": false,
        "done": true,
-       "parsed_name": "Joghurt"
+       "have": false,
+       "parsed_name": "Joghurt",
+       "quantity": "",
+       "notes": []
       }
      ]
     }
@@ -376,6 +432,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": true,
      "own": false,
@@ -389,7 +447,10 @@
        "status": "needs_action",
        "is_cookidoo": true,
        "done": false,
-       "parsed_name": "Hähnchenbrustfilet"
+       "have": false,
+       "parsed_name": "Hähnchenbrustfilet",
+       "quantity": "400 g",
+       "notes": []
       }
      ]
     }
@@ -418,6 +479,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": true,
      "own": false,
@@ -431,7 +494,10 @@
        "status": "needs_action",
        "is_cookidoo": true,
        "done": false,
-       "parsed_name": "Basmatireis"
+       "have": false,
+       "parsed_name": "Basmatireis",
+       "quantity": "200 g",
+       "notes": []
       }
      ]
     },
@@ -449,6 +515,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": true,
      "own": false,
@@ -462,7 +530,10 @@
        "status": "needs_action",
        "is_cookidoo": true,
        "done": false,
-       "parsed_name": "Spaghetti"
+       "have": false,
+       "parsed_name": "Spaghetti",
+       "quantity": "500 g",
+       "notes": []
       }
      ]
     }
@@ -491,6 +562,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": true,
      "own": true,
@@ -504,7 +577,10 @@
        "status": "needs_action",
        "is_cookidoo": true,
        "done": false,
-       "parsed_name": "Mehl"
+       "have": false,
+       "parsed_name": "Mehl",
+       "quantity": "250 g",
+       "notes": []
       },
       {
        "entity_id": "todo.einkaufsliste",
@@ -515,7 +591,10 @@
        "status": "needs_action",
        "is_cookidoo": false,
        "done": false,
-       "parsed_name": "Mehl"
+       "have": false,
+       "parsed_name": "Mehl",
+       "quantity": "1 kg",
+       "notes": []
       }
      ]
     }
@@ -544,6 +623,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": true,
      "own": false,
@@ -557,7 +638,10 @@
        "status": "needs_action",
        "is_cookidoo": true,
        "done": false,
-       "parsed_name": "Currypaste, rot"
+       "have": false,
+       "parsed_name": "Currypaste, rot",
+       "quantity": "2 EL",
+       "notes": []
       }
      ]
     },
@@ -575,6 +659,8 @@
      ],
      "notes": [],
      "checked": true,
+     "have": true,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": true,
      "own": false,
@@ -588,7 +674,10 @@
        "status": "completed",
        "is_cookidoo": true,
        "done": true,
-       "parsed_name": "Salz"
+       "have": true,
+       "parsed_name": "Salz",
+       "quantity": "1 Prise",
+       "notes": []
       }
      ]
     }
@@ -617,6 +706,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": true,
      "own": false,
@@ -630,7 +721,10 @@
        "status": "needs_action",
        "is_cookidoo": true,
        "done": false,
-       "parsed_name": "Olivenöl"
+       "have": false,
+       "parsed_name": "Olivenöl",
+       "quantity": "2 EL",
+       "notes": []
       }
      ]
     },
@@ -648,6 +742,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": true,
      "own": false,
@@ -661,7 +757,10 @@
        "status": "needs_action",
        "is_cookidoo": true,
        "done": false,
-       "parsed_name": "Tomaten, passiert"
+       "have": false,
+       "parsed_name": "Tomaten, passiert",
+       "quantity": "400 g",
+       "notes": []
       }
      ]
     }
@@ -690,6 +789,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": true,
      "own": false,
@@ -703,7 +804,10 @@
        "status": "needs_action",
        "is_cookidoo": true,
        "done": false,
-       "parsed_name": "Kokosmilch"
+       "have": false,
+       "parsed_name": "Kokosmilch",
+       "quantity": "400 g",
+       "notes": []
       }
      ]
     }
@@ -727,6 +831,8 @@
      "quantities": [],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": false,
      "own": true,
@@ -740,7 +846,10 @@
        "status": "needs_action",
        "is_cookidoo": false,
        "done": false,
-       "parsed_name": "Kaffee"
+       "have": false,
+       "parsed_name": "Kaffee",
+       "quantity": "",
+       "notes": []
       }
      ]
     },
@@ -758,6 +867,8 @@
      ],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": false,
      "own": true,
@@ -771,7 +882,10 @@
        "status": "needs_action",
        "is_cookidoo": false,
        "done": false,
-       "parsed_name": "Mineralwasser"
+       "have": false,
+       "parsed_name": "Mineralwasser",
+       "quantity": "6 Stück",
+       "notes": []
       }
      ]
     }
@@ -795,6 +909,8 @@
      "quantities": [],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": false,
      "own": true,
@@ -808,7 +924,10 @@
        "status": "needs_action",
        "is_cookidoo": false,
        "done": false,
-       "parsed_name": "Toilettenpapier"
+       "have": false,
+       "parsed_name": "Toilettenpapier",
+       "quantity": "",
+       "notes": []
       }
      ]
     }
@@ -832,6 +951,8 @@
      "quantities": [],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": true,
      "own": false,
@@ -845,7 +966,10 @@
        "status": "needs_action",
        "is_cookidoo": true,
        "done": false,
-       "parsed_name": "Küchenrolle"
+       "have": false,
+       "parsed_name": "Küchenrolle",
+       "quantity": "",
+       "notes": []
       }
      ]
     },
@@ -858,6 +982,8 @@
      "quantities": [],
      "notes": [],
      "checked": false,
+     "have": false,
+     "mixed_units": false,
      "partial": false,
      "cookidoo": false,
      "own": true,
@@ -871,7 +997,10 @@
        "status": "needs_action",
        "is_cookidoo": false,
        "done": false,
-       "parsed_name": "Spülmittel"
+       "have": false,
+       "parsed_name": "Spülmittel",
+       "quantity": "",
+       "notes": []
       }
      ]
     }
@@ -884,6 +1013,8 @@
   "total": 24,
   "open": 22,
   "done": 2,
+  "bought": 1,
+  "have": 1,
   "progress": 8,
   "merged": 3,
   "cookidoo_items": 16,
@@ -1431,21 +1562,24 @@
    "name": "Cookidoo Einkaufsliste",
    "cookidoo": true,
    "available": true,
-   "default": false
+   "default": false,
+   "can_add": false
   },
   {
    "entity_id": "todo.cookidoo_zusatzliche_einkaufe",
    "name": "Cookidoo Zusätzliche Einkäufe",
    "cookidoo": true,
    "available": true,
-   "default": false
+   "default": false,
+   "can_add": true
   },
   {
    "entity_id": "todo.einkaufsliste",
    "name": "Einkaufsliste",
    "cookidoo": false,
    "available": true,
-   "default": true
+   "default": true,
+   "can_add": true
   }
  ],
  "updated": "2026-10-25T08:15:00Z"

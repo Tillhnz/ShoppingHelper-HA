@@ -291,9 +291,26 @@ class ShoppingHelperCard extends HTMLElement {
       return;
     }
 
+    const haveBtn = t.closest("[data-have]");
+    if (haveBtn) {
+      const row = haveBtn.closest("[data-key]");
+      const key = row.dataset.key;
+      const have = row.dataset.have !== "true";
+      this._pending.add(key);
+      row.classList.add("pending");
+      this._ws({ type: "have", key, have }, have ? "Als vorhanden markiert" : "Wieder auf der Liste");
+      return;
+    }
+
     const row = t.closest("[data-key]");
     if (row) {
       const key = row.dataset.key;
+      if (row.dataset.have === "true") {
+        this._pending.add(key);
+        row.classList.add("pending");
+        this._ws({ type: "have", key, have: false }, "Wieder auf der Liste");
+        return;
+      }
       const checked = row.dataset.checked !== "true";
       this._pending.add(key);
       clearTimeout(this._recent.get(key));
@@ -487,12 +504,17 @@ class ShoppingHelperCard extends HTMLElement {
           item.own ? `<span class="dot own" title="Eigene Liste"></span>` : ""
         }</span>`
       : "";
-    return `<li class="item ${item.checked ? "checked" : ""} ${item.partial ? "partial" : ""} ${pending ? "pending" : ""}"
-              ${color ? `style="--cat:${shEsc(color)}"` : ""} data-key="${shEsc(item.key)}" data-checked="${item.checked}">
-        <span class="check"><ha-icon icon="mdi:check"></ha-icon></span>
+    const haveBtn =
+      !item.checked || item.have
+        ? `<button class="have-btn ${item.have ? "on" : ""}" data-have title="${item.have ? "Doch einkaufen" : "Bereits vorhanden"}"><ha-icon icon="${item.have ? "mdi:home" : "mdi:home-outline"}"></ha-icon></button>`
+        : "";
+    return `<li class="item ${item.checked ? "checked" : ""} ${item.have ? "have" : ""} ${item.partial ? "partial" : ""} ${pending ? "pending" : ""}"
+              ${color ? `style="--cat:${shEsc(color)}"` : ""} data-key="${shEsc(item.key)}" data-checked="${item.checked}" data-have="${!!item.have}">
+        <span class="check"><ha-icon icon="${item.have ? "mdi:home" : "mdi:check"}"></ha-icon></span>
         <span class="name">${shEsc(item.name)}</span>
         ${c.show_quantity && item.quantity ? `<span class="qty">${shEsc(item.quantity)}</span>` : ""}
         ${dots}
+        ${haveBtn}
       </li>`;
   }
 
@@ -600,6 +622,14 @@ const SH_CARD_STYLES = `
   }
   .item.checked .qty { opacity: .5; }
   .dots { display: inline-flex; gap: 3px; }
+  .have-btn {
+    width: 30px; height: 30px; margin: -4px -4px -4px 0; border-radius: 50%; border: none; background: none; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; color: var(--sh-muted); --mdc-icon-size: 18px; flex-shrink: 0;
+  }
+  .have-btn:hover { background: rgba(127,127,127,.12); }
+  .have-btn.on { color: var(--primary-color); }
+  .item.have .check { background: transparent; border-color: var(--sh-muted); color: var(--sh-muted); }
+  .item.have .name { text-decoration: none; }
   .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
   .dot.cookidoo { background: var(--sh-cookidoo); }
   .dot.own { background: var(--sh-own); }

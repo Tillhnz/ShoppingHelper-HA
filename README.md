@@ -22,7 +22,12 @@ Eigene:   2 l Milch     ┘──►  Milch · 2,3 l                            
   entspricht deinem Weg durch den Laden und ist einstellbar. Falsch einsortiert? Im Panel über
   „⋮“ dauerhaft umsortieren.
 - **Abhaken überall** – ein Haken im Panel hakt den Artikel in *allen* Ursprungslisten ab
-  (bei Cookidoo wird er als „vorhanden“ markiert).
+  (bei Cookidoo wird er als „vorhanden“ markiert). Abgehakte Artikel wandern in „Im Wagen“.
+- **Bereits vorhanden** – das Haus-Symbol an jedem Eintrag markiert Dinge, die noch zu Hause
+  sind: Sie verschwinden von der Liste (Bereich „Bereits vorhanden“), werden in Cookidoo als
+  vorhanden markiert, zählen aber nicht als Einkauf in der Statistik.
+- **Nachvollziehbar zusammengefasst** – der Pfeil an einem Eintrag zeigt, aus welchen Listen und
+  Originaleinträgen er besteht, welche Menge jeweils erkannt wurde und wie die Summe zustande kommt.
 - **Vorschläge** – Shopping Helper merkt sich, was du wie oft kaufst. Artikel, die wieder fällig
   sind („alle ~7 Tage, zuletzt vor 8 Tagen“) und nicht auf der Liste stehen, erscheinen als
   Vorschläge über der Liste – ein Tipp fügt sie hinzu, „×“ blendet sie eine Woche aus. Beim Tippen
