@@ -5,8 +5,9 @@ from datetime import timedelta
 import logging
 from typing import Any
 
+from homeassistant.components.todo import TodoListEntityFeature
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.const import ATTR_SUPPORTED_FEATURES, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
@@ -49,6 +50,10 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.overrides: dict[str, str] = {}
         self.history = HistoryTracker()
         self._sources: list[SourceItem] = []
+        # Items that can't be deleted at the source (Cookidoo ingredients) are hidden instead:
+        # entity_id -> {uid: status at the time of hiding}. They come back when their status
+        # changes (e.g. unchecked in Cookidoo) and are forgotten once they leave the list.
+        self.hidden: dict[str, dict[str, str]] = {}
 
     # ------------------------------------------------------------------ settings
     @property
@@ -80,10 +85,16 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data = await self._store.async_load() or {}
         self.overrides = dict(data.get("overrides", {}))
         self.history = HistoryTracker(data.get("history"))
+        self.hidden = {k: dict(v) for k, v in data.get("hidden", {}).items()}
 
     def _schedule_save(self) -> None:
         self._store.async_delay_save(
-            lambda: {"overrides": self.overrides, "history": self.history.as_dict()}, 10
+            lambda: {
+                "overrides": self.overrides,
+                "history": self.history.as_dict(),
+                "hidden": self.hidden,
+            },
+            10,
         )
 
     # ------------------------------------------------------------------ update
@@ -130,6 +141,8 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
 
         self._sources = sources
+        if self._prune_hidden():
+            self._schedule_save()
         today = dt_util.now().date().isoformat()
         if self.history.update(sources, today):
             self._schedule_save()
@@ -137,11 +150,54 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _build(self, lists_meta: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         order = resolve_order(self.settings.get(CONF_CATEGORY_ORDER))
-        result = merge_items(self._sources, order, self.overrides)
+        visible = [s for s in self._sources if not self._is_hidden(s)]
+        result = merge_items(visible, order, self.overrides)
+        result["stats"]["hidden"] = len(self._sources) - len(visible)
         result["lists"] = lists_meta if lists_meta is not None else (self.data or {}).get("lists", [])
         result["history"] = self.history.export(dt_util.now().date().isoformat())
         result["updated"] = dt_util.utcnow().isoformat()
         return result
+
+    # ------------------------------------------------------------------ hidden items
+    def _is_hidden(self, src: SourceItem) -> bool:
+        return self.hidden.get(src.entity_id, {}).get(src.uid) == src.status
+
+    def _hide(self, entity_id: str, uid: str, status: str) -> None:
+        self.hidden.setdefault(entity_id, {})[uid] = status
+
+    def _prune_hidden(self) -> bool:
+        current = {(s.entity_id, s.uid): s.status for s in self._sources}
+        changed = False
+        for entity_id in list(self.hidden):
+            uids = self.hidden[entity_id]
+            for uid, status in list(uids.items()):
+                if current.get((entity_id, uid)) != status:
+                    del uids[uid]
+                    changed = True
+            if not uids:
+                del self.hidden[entity_id]
+                changed = True
+        return changed
+
+    def _can_delete(self, entity_id: str) -> bool:
+        state = self.hass.states.get(entity_id)
+        features = int(state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)) if state else 0
+        return bool(features & TodoListEntityFeature.DELETE_TODO_ITEM)
+
+    async def _delete_or_hide(self, entity_id: str, items: list[tuple[str, str]]) -> tuple[int, int]:
+        """Delete (uid, status) pairs from a list; hide them where deleting is impossible."""
+        if not items:
+            return 0, 0
+        if self._can_delete(entity_id):
+            try:
+                await self._call("remove_item", entity_id, {"item": [uid for uid, _ in items]})
+                return len(items), 0
+            except HomeAssistantError as err:
+                _LOGGER.debug("Deleting from %s failed, hiding instead: %s", entity_id, err)
+        for uid, status in items:
+            self._hide(entity_id, uid, status)
+        self._schedule_save()
+        return 0, len(items)
 
     # ------------------------------------------------------------------ helpers
     def _find(self, key: str) -> dict[str, Any]:
@@ -180,19 +236,17 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await self._call("add_item", target, data)
         await self.async_refresh()
 
-    async def async_remove(self, key: str) -> None:
+    async def async_remove(self, key: str) -> dict[str, int]:
         item = self._find(key)
-        failed: list[str] = []
+        by_entity: dict[str, list[tuple[str, str]]] = {}
         for src in item["sources"]:
-            try:
-                await self._call("remove_item", src["entity_id"], {"item": [src["uid"]]})
-            except HomeAssistantError:
-                failed.append(src["list_name"])
+            by_entity.setdefault(src["entity_id"], []).append((src["uid"], src["status"]))
+        removed = hidden = 0
+        for entity_id, items in by_entity.items():
+            r, h = await self._delete_or_hide(entity_id, items)
+            removed, hidden = removed + r, hidden + h
         await self.async_refresh()
-        if failed:
-            raise HomeAssistantError(
-                "Nicht löschbar in: " + ", ".join(failed) + " (Liste unterstützt kein Löschen)"
-            )
+        return {"removed": removed, "hidden": hidden}
 
     async def async_set_category(self, key: str, category: str | None) -> None:
         if category and category not in CATEGORY_BY_ID:
@@ -204,10 +258,16 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._schedule_save()
         self.async_set_updated_data(self._build())
 
-    async def async_clear_completed(self) -> None:
-        for entity_id in self.list_entities:
-            try:
-                await self._call("remove_completed_items", entity_id, {})
-            except HomeAssistantError as err:
-                _LOGGER.debug("remove_completed_items not possible for %s: %s", entity_id, err)
+    async def async_clear_completed(self) -> dict[str, int]:
+        """Remove checked items everywhere; Cookidoo ingredients are hidden instead."""
+        await self.async_refresh()  # act on the current state of all lists
+        by_entity: dict[str, list[tuple[str, str]]] = {}
+        for src in self._sources:
+            if src.done and not self._is_hidden(src):
+                by_entity.setdefault(src.entity_id, []).append((src.uid, src.status))
+        removed = hidden = 0
+        for entity_id, items in by_entity.items():
+            r, h = await self._delete_or_hide(entity_id, items)
+            removed, hidden = removed + r, hidden + h
         await self.async_refresh()
+        return {"removed": removed, "hidden": hidden}

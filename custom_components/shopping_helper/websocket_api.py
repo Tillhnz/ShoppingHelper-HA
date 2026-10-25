@@ -25,11 +25,11 @@ def _get(hass: HomeAssistant, connection, msg) -> Any | None:
 
 async def _run(connection, msg, coro) -> None:
     try:
-        await coro
+        result = await coro
     except HomeAssistantError as err:
         connection.send_error(msg["id"], "action_failed", str(err))
         return
-    connection.send_result(msg["id"])
+    connection.send_result(msg["id"], result if isinstance(result, dict) else None)
 
 
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/data"})

@@ -73,7 +73,10 @@
       } else if (type === "remove") {
         data.categories.forEach((c) => (c.items = c.items.filter((i) => i.key !== msg.key)));
       } else if (type === "clear_completed") {
+        const n = allItems().filter((i) => i.checked).length;
         data.categories.forEach((c) => (c.items = c.items.filter((i) => !i.checked)));
+        emit();
+        return { removed: n, hidden: 0 };
       } else if (type === "set_category") {
         const item = find(msg.key);
         data.categories.forEach((c) => (c.items = c.items.filter((i) => i.key !== msg.key)));

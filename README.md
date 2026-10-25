@@ -122,8 +122,10 @@ Die GitHub-Action prüft zusätzlich mit **hassfest** und der **HACS-Validierung
 
 ## Hinweise
 
-- Cookidoo-Zutaten lassen sich nur abhaken, nicht löschen – das ist eine Einschränkung der
-  Cookidoo-Integration. Gelöscht werden sie, indem das Rezept in Cookidoo von der Liste entfernt wird.
+- Cookidoo-Zutaten kann die Cookidoo-Integration nicht löschen. „Erledigte entfernen“ und „Löschen“
+  blenden sie deshalb im Panel aus. Sie tauchen wieder auf, wenn du sie in Cookidoo wieder als
+  „nicht vorhanden“ markierst, und verschwinden endgültig, sobald das Rezept von der Cookidoo-Liste
+  entfernt wird.
 - Gramm und Liter für dasselbe Produkt werden mit ≈ 1 g/ml zusammengerechnet (Cookidoo gibt
   z. B. Milch in Gramm an) – für den Einkauf genau genug.
 - Cookidoo® und Thermomix® sind Marken der Vorwerk-Gruppe. Dieses Projekt steht in keiner

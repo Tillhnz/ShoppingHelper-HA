@@ -81,12 +81,15 @@ class ShoppingHelperPanel extends HTMLElement {
 
   async _ws(payload, okMessage) {
     try {
-      await this._hass.callWS({ ...payload, type: `${DOMAIN}/${payload.type}` });
-      if (okMessage) this._toast(okMessage);
+      const result = await this._hass.callWS({ ...payload, type: `${DOMAIN}/${payload.type}` });
+      const message = typeof okMessage === "function" ? okMessage(result) : okMessage;
+      if (message) this._toast(message);
+      return result;
     } catch (err) {
       this._pending.clear();
       this._render();
       this._toast(err?.message || "Aktion fehlgeschlagen");
+      return null;
     }
   }
 
@@ -197,7 +200,7 @@ class ShoppingHelperPanel extends HTMLElement {
       this._ws({ type: "set_category", key, category: sel.value || null }, "Kategorie gespeichert");
     });
     root.getElementById("stats-tab").addEventListener("click", (ev) => {
-      if (ev.target.closest("#clear-completed")) this._clearCompleted();
+      this._onClearClick(ev);
     });
   }
 
@@ -210,10 +213,7 @@ class ShoppingHelperPanel extends HTMLElement {
       this._render();
       return;
     }
-    if (ev.target.closest("#clear-completed")) {
-      this._clearCompleted();
-      return;
-    }
+    if (this._onClearClick(ev)) return;
     const more = ev.target.closest("[data-more]");
     if (more) {
       ev.stopPropagation();
@@ -225,7 +225,9 @@ class ShoppingHelperPanel extends HTMLElement {
     if (del) {
       const key = del.dataset.remove;
       this._expanded = null;
-      this._ws({ type: "remove", key }, "Artikel entfernt");
+      this._ws({ type: "remove", key }, (r) =>
+        r?.hidden && !r?.removed ? "Cookidoo-Zutat ausgeblendet" : "Artikel entfernt"
+      );
       return;
     }
     if (ev.target.closest(".details")) return;
@@ -240,11 +242,52 @@ class ShoppingHelperPanel extends HTMLElement {
     }
   }
 
-  _clearCompleted() {
-    const done = this._data?.stats?.done || 0;
-    if (!done) return;
-    if (!confirm(`${done} erledigte Artikel aus allen Listen entfernen?`)) return;
-    this._ws({ type: "clear_completed" }, "Erledigte Artikel entfernt");
+  /* Two-step confirmation inside the page – confirm() is blocked in the companion app. */
+  _onClearClick(ev) {
+    const btn = ev.target.closest("[data-clear]");
+    if (!btn) return false;
+    clearTimeout(this._confirmTimer);
+    const action = btn.dataset.clear;
+    if (action === "ask") {
+      this._confirmClear = true;
+      this._confirmTimer = setTimeout(() => {
+        this._confirmClear = false;
+        this._render();
+      }, 6000);
+    } else if (action === "cancel") {
+      this._confirmClear = false;
+    } else if (action === "confirm") {
+      this._confirmClear = false;
+      this._clearing = true;
+      this._ws({ type: "clear_completed" }, (r) => {
+        const removed = r?.removed ?? 0;
+        const hidden = r?.hidden ?? 0;
+        if (!removed && !hidden) return "Keine erledigten Artikel gefunden";
+        return hidden
+          ? `${removed + hidden} erledigte entfernt (${hidden} Cookidoo-Zutaten ausgeblendet)`
+          : `${removed} erledigte Artikel entfernt`;
+      }).finally(() => {
+        this._clearing = false;
+        this._render();
+      });
+    }
+    this._render();
+    return true;
+  }
+
+  _clearFooter(stats) {
+    if (!stats.done && !this._clearing) return "";
+    let inner;
+    if (this._clearing) {
+      inner = `<span class="muted">Entferne erledigte Artikel …</span>`;
+    } else if (this._confirmClear) {
+      inner = `<span>${stats.done} erledigte aus allen Listen entfernen?</span>
+        <button class="text-btn danger" data-clear="confirm"><ha-icon icon="mdi:check"></ha-icon>Entfernen</button>
+        <button class="text-btn" data-clear="cancel">Abbrechen</button>`;
+    } else {
+      inner = `<button class="text-btn" data-clear="ask"><ha-icon icon="mdi:broom"></ha-icon>${stats.done} erledigte entfernen</button>`;
+    }
+    return `<div class="footer-actions">${inner}</div>`;
   }
 
   _showError(message) {
@@ -323,12 +366,7 @@ class ShoppingHelperPanel extends HTMLElement {
          <p>${stats.total ? "Keine passenden Artikel." : "Alles erledigt – die Listen sind leer."}</p>
        </div>`;
 
-    if (stats.done && !this._hideDone) {
-      root.getElementById("list").insertAdjacentHTML(
-        "beforeend",
-        `<div class="footer-actions"><button class="text-btn" id="clear-completed"><ha-icon icon="mdi:broom"></ha-icon>${stats.done} erledigte entfernen</button></div>`
-      );
-    }
+    root.getElementById("list").insertAdjacentHTML("beforeend", this._clearFooter(stats));
   }
 
   _itemHtml(item, allCategories) {
@@ -405,7 +443,7 @@ class ShoppingHelperPanel extends HTMLElement {
           ${this._topList(history.top || [])}
         </div>
       </div>
-      ${stats.done ? `<div class="footer-actions"><button class="text-btn" id="clear-completed"><ha-icon icon="mdi:broom"></ha-icon>${stats.done} erledigte entfernen</button></div>` : ""}
+      ${this._clearFooter(stats)}
       <p class="muted small center">Aktualisiert: ${esc(new Date(this._data.updated).toLocaleTimeString("de-DE"))}</p>`;
   }
 
@@ -666,7 +704,7 @@ const STYLES = `
   }
   .text-btn:hover { background: rgba(127,127,127,.1); }
   .text-btn.danger { color: var(--error-color, #db4437); }
-  .footer-actions { display: flex; justify-content: center; margin: 8px 0 16px; }
+  .footer-actions { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin: 8px 0 16px; font-size: 14px; }
   .empty { padding: 40px 16px; text-align: center; color: var(--sh-muted); --mdc-icon-size: 48px; }
   .empty.error { color: var(--error-color, #db4437); }
   .loading { text-align: center; padding: 48px; color: var(--sh-muted); }
