@@ -30,7 +30,8 @@
     const configs = [
       {},
       { title: "Nur Cookidoo", filter: "cookidoo", show_add: false, show_suggestions: false },
-      { title: "Kompakt", group_by_category: false, max_items: 6, show_progress: false },
+      { title: "Kompakt", icon: "mdi:basket", group_by_category: false, compact: true, max_items: 6, show_progress: false, show_sources: false },
+      { show_header: false, entities: ["todo.einkaufsliste"], hide_categories: ["drugstore", "household"], show_suggestions: false, max_height: 220 },
     ];
     for (const config of configs) {
       const card = document.createElement("shopping-helper-card");

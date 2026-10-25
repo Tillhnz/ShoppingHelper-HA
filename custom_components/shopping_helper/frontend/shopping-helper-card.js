@@ -13,15 +13,87 @@ const SH_RECENT_MS = 4000; // checked items stay visible this long (to undo a mi
 const shEsc = (v) =>
   String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+const SH_CATEGORIES = [
+  ["produce", "Obst & Gemüse"],
+  ["bakery", "Brot & Backwaren"],
+  ["dairy", "Milch, Käse & Eier"],
+  ["meat", "Fleisch & Wurst"],
+  ["fish", "Fisch & Meeresfrüchte"],
+  ["frozen", "Tiefkühl"],
+  ["pasta", "Nudeln, Reis & Getreide"],
+  ["baking", "Backzutaten"],
+  ["spices", "Gewürze & Würzmittel"],
+  ["oils", "Öl, Essig & Saucen"],
+  ["canned", "Konserven & Fertiges"],
+  ["breakfast", "Frühstück & Aufstriche"],
+  ["snacks", "Süßes & Snacks"],
+  ["drinks", "Getränke"],
+  ["drugstore", "Drogerie & Hygiene"],
+  ["household", "Haushalt"],
+  ["other", "Sonstiges"],
+];
+
 const SH_DEFAULTS = {
+  // header
+  show_header: true,
   title: "Einkaufsliste",
-  filter: "all", // all | cookidoo | own
-  group_by_category: true,
-  show_add: true,
-  show_suggestions: true,
+  icon: "mdi:cart-variant",
+  show_badge: true,
+  show_panel_button: true,
   show_progress: true,
+  // lists & categories
+  filter: "all", // all | cookidoo | own
+  entities: [], // only items from these to-do lists (empty = all)
+  hide_categories: [],
+  group_by_category: true,
+  // items
   show_done: false,
+  show_quantity: true,
+  show_sources: true,
+  compact: false,
   max_items: 0, // 0 = no limit
+  max_height: 0, // px, 0 = grow with content
+  // actions
+  show_add: true,
+  add_list: "", // empty = default list from the integration options
+  show_suggestions: true,
+  max_suggestions: 8,
+  show_clear: true,
+};
+
+const SH_LABELS = {
+  header: "Kopfzeile",
+  show_header: "Kopfzeile anzeigen",
+  title: "Titel",
+  icon: "Symbol",
+  show_badge: "Anzahl offener Artikel",
+  show_panel_button: "Knopf zum Öffnen des Panels",
+  show_progress: "Fortschrittsbalken",
+  content: "Listen & Kategorien",
+  filter: "Herkunft",
+  entities: "Nur diese Listen",
+  hide_categories: "Ausgeblendete Kategorien",
+  group_by_category: "Nach Kategorien gruppieren",
+  items: "Artikel",
+  show_done: "Erledigte anzeigen",
+  show_quantity: "Mengen anzeigen",
+  show_sources: "Herkunft-Punkte anzeigen (grün = Cookidoo, blau = eigene)",
+  compact: "Kompakte Zeilen",
+  max_items: "Maximal angezeigte Artikel",
+  max_height: "Maximale Höhe der Liste",
+  actions: "Funktionen",
+  show_add: "Eingabefeld zum Hinzufügen",
+  add_list: "Neue Artikel landen in",
+  show_suggestions: "Vorschläge anzeigen",
+  max_suggestions: "Maximale Anzahl Vorschläge",
+  show_clear: "Knopf „Erledigte entfernen“",
+};
+
+const SH_HELPERS = {
+  entities: "Leer lassen für alle Listen des Shopping Helpers.",
+  max_items: "0 = alle. Darüber hinaus erscheint „… weitere“ mit Link zum Panel.",
+  max_height: "0 = wächst mit dem Inhalt, sonst scrollt die Liste.",
+  add_list: "Leer lassen für die Standardliste aus den Integrations-Optionen.",
 };
 
 class ShoppingHelperCard extends HTMLElement {
@@ -41,46 +113,78 @@ class ShoppingHelperCard extends HTMLElement {
   }
 
   static getConfigForm() {
+    const bool = { boolean: {} };
+    const section = (name, icon, schema, expanded = false) => ({
+      name, type: "expandable", flatten: true, icon, expanded, schema,
+    });
     return {
       schema: [
-        { name: "title", selector: { text: {} } },
-        {
-          name: "filter",
-          selector: {
-            select: {
-              mode: "dropdown",
-              options: [
-                { value: "all", label: "Alle Listen" },
-                { value: "cookidoo", label: "Nur Cookidoo" },
-                { value: "own", label: "Nur eigene Listen" },
-              ],
+        section("header", "mdi:page-layout-header", [
+          { name: "show_header", selector: bool },
+          { name: "title", selector: { text: {} } },
+          { name: "icon", selector: { icon: {} } },
+          {
+            type: "grid",
+            name: "",
+            schema: [
+              { name: "show_badge", selector: bool },
+              { name: "show_panel_button", selector: bool },
+              { name: "show_progress", selector: bool },
+            ],
+          },
+        ], true),
+        section("content", "mdi:format-list-bulleted-type", [
+          {
+            name: "filter",
+            selector: {
+              select: {
+                mode: "dropdown",
+                options: [
+                  { value: "all", label: "Alle Listen" },
+                  { value: "cookidoo", label: "Nur Cookidoo" },
+                  { value: "own", label: "Nur eigene Listen" },
+                ],
+              },
             },
           },
-        },
-        { name: "max_items", selector: { number: { min: 0, max: 100, mode: "box" } } },
-        {
-          type: "grid",
-          name: "",
-          schema: [
-            { name: "group_by_category", selector: { boolean: {} } },
-            { name: "show_add", selector: { boolean: {} } },
-            { name: "show_suggestions", selector: { boolean: {} } },
-            { name: "show_progress", selector: { boolean: {} } },
-            { name: "show_done", selector: { boolean: {} } },
-          ],
-        },
+          { name: "entities", selector: { entity: { multiple: true, filter: { domain: "todo" } } } },
+          { name: "group_by_category", selector: bool },
+          {
+            name: "hide_categories",
+            selector: {
+              select: { multiple: true, mode: "dropdown", options: SH_CATEGORIES.map(([value, label]) => ({ value, label })) },
+            },
+          },
+        ]),
+        section("items", "mdi:checkbox-marked-circle-outline", [
+          {
+            type: "grid",
+            name: "",
+            schema: [
+              { name: "show_done", selector: bool },
+              { name: "show_quantity", selector: bool },
+              { name: "show_sources", selector: bool },
+              { name: "compact", selector: bool },
+            ],
+          },
+          { name: "max_items", selector: { number: { min: 0, max: 200, mode: "box" } } },
+          { name: "max_height", selector: { number: { min: 0, max: 2000, step: 10, mode: "box", unit_of_measurement: "px" } } },
+        ]),
+        section("actions", "mdi:gesture-tap", [
+          { name: "show_add", selector: bool },
+          { name: "add_list", selector: { entity: { filter: { domain: "todo" } } } },
+          { name: "show_suggestions", selector: bool },
+          { name: "max_suggestions", selector: { number: { min: 1, max: 30, mode: "box" } } },
+          { name: "show_clear", selector: bool },
+        ]),
       ],
-      computeLabel: (s) =>
-        ({
-          title: "Titel",
-          filter: "Listen",
-          max_items: "Maximal angezeigte Artikel (0 = alle)",
-          group_by_category: "Nach Kategorien gruppieren",
-          show_add: "Eingabefeld zum Hinzufügen",
-          show_suggestions: "Vorschläge anzeigen",
-          show_progress: "Fortschrittsbalken",
-          show_done: "Erledigte anzeigen",
-        }[s.name]),
+      computeLabel: (s) => SH_LABELS[s.name] ?? s.name,
+      computeHelper: (s) => SH_HELPERS[s.name],
+      assertConfig: (config) => {
+        if (config.filter && !["all", "cookidoo", "own"].includes(config.filter)) {
+          throw new Error("filter muss all, cookidoo oder own sein");
+        }
+      },
     };
   }
 
@@ -88,7 +192,13 @@ class ShoppingHelperCard extends HTMLElement {
     if (config.filter && !["all", "cookidoo", "own"].includes(config.filter)) {
       throw new Error("filter muss all, cookidoo oder own sein");
     }
-    this._config = { ...SH_DEFAULTS, ...config };
+    const arr = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+    this._config = {
+      ...SH_DEFAULTS,
+      ...config,
+      entities: arr(config.entities),
+      hide_categories: arr(config.hide_categories),
+    };
     this._render();
   }
 
@@ -177,7 +287,7 @@ class ShoppingHelperCard extends HTMLElement {
       const name = sugg.dataset.name;
       this._pending.add("sugg:" + sugg.dataset.suggAdd);
       this._render();
-      this._ws({ type: "add", name }, `„${name}“ hinzugefügt`);
+      this._ws({ type: "add", name, ...this._target() }, `„${name}“ hinzugefügt`);
       return;
     }
 
@@ -211,7 +321,11 @@ class ShoppingHelperCard extends HTMLElement {
     const name = input.value.trim();
     if (!name) return;
     input.value = "";
-    this._ws({ type: "add", name }, `„${name}“ hinzugefügt`);
+    this._ws({ type: "add", name, ...this._target() }, `„${name}“ hinzugefügt`);
+  }
+
+  _target() {
+    return this._config.add_list ? { entity_id: this._config.add_list } : {};
   }
 
   /* Two-step confirmation inside the card – confirm() is blocked in the companion app. */
@@ -236,10 +350,18 @@ class ShoppingHelperCard extends HTMLElement {
   }
 
   /* ------------------------------------------------------------ render */
+  /* item belongs to this card (source/list/category filters), regardless of its checked state */
+  _matches(item) {
+    const c = this._config;
+    if (c.filter === "cookidoo" && !item.cookidoo) return false;
+    if (c.filter === "own" && !item.own) return false;
+    if (c.entities.length && !item.sources.some((s) => c.entities.includes(s.entity_id))) return false;
+    if (c.hide_categories.includes(item.category)) return false;
+    return true;
+  }
+
   _visible(item) {
-    const f = this._config.filter;
-    if (f === "cookidoo" && !item.cookidoo) return false;
-    if (f === "own" && !item.own) return false;
+    if (!this._matches(item)) return false;
     if (item.checked && !this._config.show_done && !this._pending.has(item.key) && !this._recent.has(item.key)) return false;
     return true;
   }
@@ -269,12 +391,15 @@ class ShoppingHelperCard extends HTMLElement {
 
   _html() {
     const c = this._config;
-    const header = (badge = "") => `<div class="header">
-        <ha-icon icon="mdi:cart-variant" class="header-icon"></ha-icon>
-        <div class="title">${shEsc(c.title)}</div>
-        ${badge}
-        <button class="icon-btn" data-open-panel title="Shopping Helper öffnen"><ha-icon icon="mdi:open-in-new"></ha-icon></button>
-      </div>`;
+    const header = (badge = "") =>
+      c.show_header
+        ? `<div class="header">
+            ${c.icon ? `<ha-icon icon="${shEsc(c.icon)}" class="header-icon"></ha-icon>` : ""}
+            <div class="title">${shEsc(c.title)}</div>
+            ${c.show_badge ? badge : ""}
+            ${c.show_panel_button ? `<button class="icon-btn" data-open-panel title="Shopping Helper öffnen"><ha-icon icon="mdi:open-in-new"></ha-icon></button>` : ""}
+          </div>`
+        : "";
 
     if (this._error) {
       return `${header()}<div class="state error"><ha-icon icon="mdi:alert-circle-outline"></ha-icon><span>${shEsc(this._error)}</span></div>`;
@@ -284,13 +409,15 @@ class ShoppingHelperCard extends HTMLElement {
     }
 
     const { categories = [], stats = {} } = this._data;
+    const mine = categories.flatMap((cat) => cat.items.filter((i) => this._matches(i)));
+    const total = mine.length;
+    const done = mine.filter((i) => i.checked).length;
+    const openCount = total - done;
+    const progressPct = total ? Math.round((done / total) * 100) : 0;
+
     const groups = categories
       .map((cat) => ({ cat, items: cat.items.filter((i) => this._visible(i)) }))
       .filter((g) => g.items.length);
-    const openCount = categories.reduce(
-      (n, cat) => n + cat.items.filter((i) => !i.checked && (c.filter === "all" || (c.filter === "cookidoo" ? i.cookidoo : i.own))).length,
-      0
-    );
 
     // limit the number of rows
     let budget = c.max_items > 0 ? c.max_items : Infinity;
@@ -309,12 +436,12 @@ class ShoppingHelperCard extends HTMLElement {
 
     const badge = `<span class="badge ${openCount ? "" : "done"}">${openCount ? `${openCount} offen` : "✓"}</span>`;
     const progress =
-      c.show_progress && stats.total
-        ? `<div class="progress" title="${stats.progress}% erledigt"><div style="width:${stats.progress}%"></div></div>`
+      c.show_progress && total
+        ? `<div class="progress ${c.show_header ? "" : "top"}" title="${progressPct}% erledigt"><div style="width:${progressPct}%"></div></div>`
         : "";
 
     const add = c.show_add
-      ? `<form class="add" autocomplete="off">
+      ? `<form class="add ${c.show_header || progress ? "" : "top"}" autocomplete="off">
           <input id="add-input" list="sh-known" placeholder="Artikel hinzufügen …" enterkeyhint="done" />
           <datalist id="sh-known">${(this._data.known_names || []).map((n) => `<option value="${shEsc(n)}"></option>`).join("")}</datalist>
           <button type="submit" class="icon-btn add-btn" title="Hinzufügen"><ha-icon icon="mdi:plus"></ha-icon></button>
@@ -324,7 +451,7 @@ class ShoppingHelperCard extends HTMLElement {
     let list;
     if (!shown.length) {
       list = `<div class="state muted"><ha-icon icon="mdi:cart-check"></ha-icon><span>${
-        stats.total ? "Alles erledigt 🎉" : "Die Einkaufsliste ist leer."
+        total ? "Alles erledigt 🎉" : "Die Einkaufsliste ist leer."
       }</span></div>`;
     } else if (c.group_by_category) {
       list = shown
@@ -344,29 +471,34 @@ class ShoppingHelperCard extends HTMLElement {
     const more = hiddenCount
       ? `<button class="text-btn" data-open-panel><ha-icon icon="mdi:dots-horizontal"></ha-icon>${hiddenCount} weitere</button>`
       : "";
-    const footer = more || this._clearHtml(stats) ? `<div class="footer">${more}<span class="spacer"></span>${this._clearHtml(stats)}</div>` : "";
+    const clear = c.show_clear ? this._clearHtml(stats) : "";
+    const footer = more || clear ? `<div class="footer">${more}<span class="spacer"></span>${clear}</div>` : "";
+    const listStyle = c.max_height > 0 ? `style="max-height:${Number(c.max_height)}px"` : "";
 
-    return `${header(badge)}${progress}${add}${this._suggestionsHtml()}<div class="list">${list}</div>${footer}`;
+    return `<div class="${c.compact ? "compact" : ""} wrap">${header(badge)}${progress}${add}${this._suggestionsHtml()}
+      <div class="list" ${listStyle}>${list}</div>${footer}</div>`;
   }
 
   _itemHtml(item, color) {
+    const c = this._config;
     const pending = this._pending.has(item.key);
-    const dots = [
-      item.cookidoo ? `<span class="dot cookidoo" title="Cookidoo"></span>` : "",
-      item.own ? `<span class="dot own" title="Eigene Liste"></span>` : "",
-    ].join("");
+    const dots = c.show_sources
+      ? `<span class="dots">${item.cookidoo ? `<span class="dot cookidoo" title="Cookidoo"></span>` : ""}${
+          item.own ? `<span class="dot own" title="Eigene Liste"></span>` : ""
+        }</span>`
+      : "";
     return `<li class="item ${item.checked ? "checked" : ""} ${item.partial ? "partial" : ""} ${pending ? "pending" : ""}"
               ${color ? `style="--cat:${shEsc(color)}"` : ""} data-key="${shEsc(item.key)}" data-checked="${item.checked}">
         <span class="check"><ha-icon icon="mdi:check"></ha-icon></span>
         <span class="name">${shEsc(item.name)}</span>
-        ${item.quantity ? `<span class="qty">${shEsc(item.quantity)}</span>` : ""}
-        <span class="dots">${dots}</span>
+        ${c.show_quantity && item.quantity ? `<span class="qty">${shEsc(item.quantity)}</span>` : ""}
+        ${dots}
       </li>`;
   }
 
   _suggestionsHtml() {
     if (!this._config.show_suggestions) return "";
-    const items = (this._data.suggestions || []).filter((s) => !this._pending.has("sugg:" + s.key)).slice(0, 8);
+    const items = (this._data.suggestions || []).filter((s) => !this._pending.has("sugg:" + s.key)).slice(0, Math.max(1, Number(this._config.max_suggestions) || 8));
     if (!items.length) return "";
     const colors = Object.fromEntries((this._data.all_categories || []).map((c) => [c.id, c.color]));
     return `<div class="suggest">${items
@@ -400,7 +532,11 @@ const SH_CARD_STYLES = `
   * { box-sizing: border-box; }
   button { font: inherit; color: inherit; }
   ha-card { overflow: hidden; height: 100%; display: flex; flex-direction: column; }
-  #body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  #body, .wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .progress.top, .add.top { margin-top: 12px; }
+  .compact .item { padding-top: 4px; padding-bottom: 4px; }
+  .compact .name { font-size: 14px; }
+  .compact .group-title { padding-top: 6px; }
   .header { display: flex; align-items: center; gap: 10px; padding: 12px 8px 8px 16px; }
   .header-icon { color: var(--state-icon-color, var(--primary-color)); }
   .title { flex: 1; font-size: 18px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -484,14 +620,42 @@ const SH_CARD_STYLES = `
   .text-btn.danger { color: var(--error-color, #db4437); }
 `;
 
-if (!customElements.get("shopping-helper-card")) {
-  customElements.define("shopping-helper-card", ShoppingHelperCard);
-  window.customCards = window.customCards || [];
-  window.customCards.push({
-    type: "shopping-helper-card",
-    name: "Shopping Helper",
-    description: "Zusammengeführte Einkaufsliste aus Cookidoo und eigenen Listen – abhaken, hinzufügen, Vorschläge.",
-    preview: true,
-    documentationURL: "https://github.com/Tillhnz/ShoppingHelper-HA",
-  });
-}
+/*
+ * Registration. The integration loads this file as an extra frontend module, which can run before
+ * Home Assistant's scoped custom-element registry polyfill replaces window.customElements – an element
+ * defined that early is silently lost (home-assistant/frontend#53890). So wait until the app itself is
+ * defined in the current registry, always re-reading window.customElements.
+ */
+(() => {
+  const NAME = "shopping-helper-card";
+  const define = () => {
+    const registry = window.customElements;
+    if (registry.get(NAME)) return;
+    registry.define(NAME, ShoppingHelperCard);
+    window.customCards = window.customCards || [];
+    if (!window.customCards.some((c) => c.type === NAME)) {
+      window.customCards.push({
+        type: NAME,
+        name: "Shopping Helper",
+        description: "Zusammengeführte Einkaufsliste aus Cookidoo und eigenen Listen – abhaken, hinzufügen, Vorschläge.",
+        preview: true,
+        documentationURL: "https://github.com/Tillhnz/ShoppingHelper-HA",
+      });
+    }
+    console.info("%c SHOPPING-HELPER-CARD %c geladen ", "background:#2e9e5b;color:#fff;font-weight:600", "");
+  };
+  const appReady = () => !!window.customElements.get("home-assistant");
+  const inHomeAssistant = () => !!document.querySelector("home-assistant");
+
+  if (appReady() || !inHomeAssistant()) {
+    define(); // loaded as a dashboard resource after startup, or outside HA (demo)
+    return;
+  }
+  let tries = 0;
+  const timer = setInterval(() => {
+    if (appReady() || ++tries > 600) {
+      clearInterval(timer);
+      define();
+    }
+  }, 50);
+})();

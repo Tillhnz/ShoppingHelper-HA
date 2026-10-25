@@ -69,24 +69,50 @@ Titel/Icon der Seitenleiste, Sichtbarkeit nur für Admins und die **Laden-Reihen
 
 ## Dashboard-Karte
 
-Dashboard bearbeiten → **Karte hinzufügen** → „Shopping Helper“ (alle Optionen lassen sich im
-visuellen Editor einstellen). Oder per YAML:
+Dashboard bearbeiten → **Karte hinzufügen** → „Shopping Helper“. Alles lässt sich im visuellen
+Editor einstellen, gegliedert in *Kopfzeile*, *Listen & Kategorien*, *Artikel* und *Funktionen*.
+Dieselben Optionen per YAML (alle optional, hier mit ihren Standardwerten):
 
 ```yaml
 type: custom:shopping-helper-card
-title: Einkaufsliste       # Überschrift
+# Kopfzeile
+show_header: true
+title: Einkaufsliste
+icon: mdi:cart-variant
+show_badge: true           # „12 offen“
+show_panel_button: true    # Symbol zum Öffnen des Panels
+show_progress: true
+# Listen & Kategorien
 filter: all                # all | cookidoo | own
-group_by_category: true    # nach Supermarkt-Kategorien gruppieren
-show_add: true             # Eingabefeld zum Hinzufügen
-show_suggestions: true     # Vorschläge für häufig gekaufte Artikel
-show_progress: true        # Fortschrittsbalken
-show_done: false           # erledigte Artikel weiter anzeigen
+entities: []               # nur Artikel aus diesen To-do-Listen, leer = alle
+group_by_category: true
+hide_categories: []        # z. B. [drugstore, household]
+# Artikel
+show_done: false
+show_quantity: true
+show_sources: true         # Punkte: grün = Cookidoo, blau = eigene Liste
+compact: false
 max_items: 0               # 0 = alle, sonst „… weitere“ mit Link zum Panel
+max_height: 0              # px, 0 = wächst mit, sonst scrollt die Liste
+# Funktionen
+show_add: true
+add_list: ""               # Ziel für neue Artikel, leer = Standardliste
+show_suggestions: true
+max_suggestions: 8
+show_clear: true           # „Erledigte entfernen“
 ```
 
+Kategorie-IDs für `hide_categories`: `produce`, `bakery`, `dairy`, `meat`, `fish`, `frozen`, `pasta`,
+`baking`, `spices`, `oils`, `canned`, `breakfast`, `snacks`, `drinks`, `drugstore`, `household`, `other`.
+
 Ein Tipp auf einen Artikel hakt ihn in allen Ursprungslisten ab; abgehakte Artikel bleiben ein paar
-Sekunden sichtbar, damit sich ein Fehltipp rückgängig machen lässt. Das Symbol oben rechts öffnet das
-Panel. Nach der Installation bzw. einem Update einmal die Seite im Browser neu laden.
+Sekunden sichtbar, damit sich ein Fehltipp rückgängig machen lässt.
+
+Die Karte wird von der Integration automatisch geladen, ein Ressourcen-Eintrag ist nicht nötig. Nach
+der Installation bzw. einem Update: Home Assistant neu starten und die Seite im Browser neu laden
+(in der Companion-App: Einstellungen → Companion-App → Fehlerbehebung → Frontend-Cache leeren).
+Taucht sie trotzdem nicht in der Kartenauswahl auf, prüfe in der Browser-Konsole, ob
+`SHOPPING-HELPER-CARD geladen` erscheint.
 
 ## Beispiele
 
@@ -122,7 +148,7 @@ actions:
 ## Demo ohne Home Assistant
 
 `demo/index.html` im Browser öffnen – das Panel läuft dort mit Beispieldaten und simulierten
-Aktionen, `demo/card.html` zeigt die Dashboard-Karte in drei Varianten. `python3 demo/generate_sample.py` erzeugt die Beispieldaten neu aus der echten Logik.
+Aktionen, `demo/card.html` zeigt die Dashboard-Karte in mehreren Varianten. `python3 demo/generate_sample.py` erzeugt die Beispieldaten neu aus der echten Logik.
 
 ## Aufbau
 
