@@ -1,0 +1,52 @@
+name: Release
+
+# Publishes a GitHub release whenever the version in manifest.json changes on main,
+# so HACS offers the update without having to redownload.
+on:
+  push:
+    branches: [main]
+    paths:
+      - custom_components/shopping_helper/manifest.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        id: version
+        run: |
+          version=$(jq -r .version custom_components/shopping_helper/manifest.json)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git rev-parse "v$version" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Release notes from commits since the last tag
+        if: steps.version.outputs.exists == 'false'
+        run: |
+          last=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          range=${last:+$last..HEAD}
+          git log $range --no-merges --format='%B' \
+            | grep -v -E '^(Co-Authored-By|Claude-Session):' \
+            | sed -e 's/[[:space:]]*$//' | cat -s > notes.md
+          [ -s notes.md ] || echo "Version ${{ steps.version.outputs.version }}" > notes.md
+
+      - name: Create release
+        if: steps.version.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.version.outputs.version }}" \
+            --target "$GITHUB_SHA" \
+            --title "${{ steps.version.outputs.version }}" \
+            --notes-file notes.md
