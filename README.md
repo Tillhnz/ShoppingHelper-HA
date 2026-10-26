@@ -35,8 +35,7 @@ Eigene:   2 l Milch     ┘──►  Milch · 2,3 l                            
   Originaleinträgen er besteht, welche Menge jeweils erkannt wurde und wie die Summe zustande kommt.
 - **Vorschläge** – Shopping Helper merkt sich, was du wie oft kaufst. Artikel, die wieder fällig
   sind („alle ~7 Tage, zuletzt vor 8 Tagen“) und nicht auf der Liste stehen, erscheinen als
-  Vorschläge über der Liste – ein Tipp fügt sie hinzu, „×“ blendet sie eine Woche aus. Beim Tippen
-  im Eingabefeld werden bekannte Artikel automatisch ergänzt.
+  Vorschläge über der Liste – ein Tipp fügt sie hinzu, „×“ blendet sie eine Woche aus.
 - **Übersicht** – Kennzahlen zur aktuellen Liste, Donut nach Kategorien, Balken nach Herkunft,
   Fortschrittsring.
 - **Statistik** – gekaufte Artikel pro Woche (12 Wochen), Einkaufstage nach Wochentag, Käufe nach

@@ -459,8 +459,7 @@ class ShoppingHelperCard extends HTMLElement {
 
     const add = c.show_add
       ? `<form class="add ${c.show_header || progress ? "" : "top"}" autocomplete="off">
-          <input id="add-input" list="sh-known" placeholder="Artikel hinzufügen …" enterkeyhint="done" />
-          <datalist id="sh-known">${(this._data.known_names || []).map((n) => `<option value="${shEsc(n)}"></option>`).join("")}</datalist>
+          <input id="add-input" placeholder="Artikel hinzufügen …" enterkeyhint="done" autocomplete="off" />
           <button type="submit" class="icon-btn add-btn" title="Hinzufügen"><ha-icon icon="mdi:plus"></ha-icon></button>
         </form>`
       : "";

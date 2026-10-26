@@ -130,8 +130,7 @@ class ShoppingHelperPanel extends HTMLElement {
       <div class="content">
         <section id="list-tab">
           <form class="add card" id="add-form" autocomplete="off">
-            <input id="add-input" list="known-names" placeholder="Artikel hinzufügen, z. B. „2 l Milch“" enterkeyhint="done" />
-            <datalist id="known-names"></datalist>
+            <input id="add-input" placeholder="Artikel hinzufügen, z. B. „2 l Milch“" enterkeyhint="done" autocomplete="off" />
             <select id="add-list" title="Ziel-Liste" hidden></select>
             <button type="submit" class="add-btn" title="Hinzufügen"><ha-icon icon="mdi:plus"></ha-icon></button>
           </form>
@@ -400,19 +399,9 @@ class ShoppingHelperPanel extends HTMLElement {
       return;
     }
     this._renderListSelect();
-    this._renderKnownNames();
     if (this._tab === "list") this._renderList();
     else if (this._tab === "stats") this._renderStats();
     else this._renderInsights();
-  }
-
-  _renderKnownNames() {
-    const list = this.shadowRoot.getElementById("known-names");
-    const names = this._data.known_names || [];
-    const sig = names.join("|");
-    if (list.dataset.sig === sig) return;
-    list.innerHTML = names.map((n) => `<option value="${esc(n)}"></option>`).join("");
-    list.dataset.sig = sig;
   }
 
   /* ------------------------------------------------------------ suggestions */
