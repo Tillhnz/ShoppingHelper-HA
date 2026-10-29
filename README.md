@@ -18,7 +18,7 @@ Eigene:   2 l Milch     ┘──►  Milch · 2,3 l                            
 - **Mengen addieren** – g/kg, ml/l, EL, TL, Stück, Bund, Dose … werden erkannt und summiert,
   egal ob die Menge in der Beschreibung (Cookidoo) oder im Text steht („500 g Mehl“, „Milch 1 l“,
   „2x Butter“, „Eier (10)“).
-- **Ordnen** – 17 Supermarkt-Kategorien mit großer deutscher Schlagwortliste. Die Reihenfolge
+- **Ordnen** – 18 Supermarkt-Kategorien mit großer deutscher Schlagwortliste. Die Reihenfolge
   entspricht deinem Weg durch den Laden und ist einstellbar. Falsch einsortiert? Im Panel über
   „⋮“ dauerhaft umsortieren.
 - **Abhaken überall** – ein Haken im Panel hakt den Artikel in *allen* Ursprungslisten ab

@@ -35,7 +35,7 @@ DEFAULT_CATEGORIES: list[Category] = [
         "porree, frühlingszwiebel, lauchzwiebel, brokkoli, blumenkohl, kohlrabi, weißkohl, "
         "rotkohl, wirsing, spitzkohl, rosenkohl, grünkohl, spinat, mangold, salat, rucola, "
         "feldsalat, eisberg, radieschen, rettich, rote bete, pastinake, kürbis, fenchel, "
-        "spargel, champignon, pilz, pfifferling, mais, maiskolben, zuckerschote, bohne, grüne bohne, wassermelone, "
+        "spargel, erbse, zuckerschote, champignon, pilz, pfifferling, mais, maiskolben, zuckerschote, bohne, grüne bohne, wassermelone, "
         "petersilie, schnittlauch, basilikum, koriander, dill, minze, rosmarin, thymian, "
         "salbei, kresse, chili, peperoni, olive, chicorée, artischocke, "
         "staudensellerie, knollensellerie, meerrettich, kraut"
@@ -48,7 +48,11 @@ DEFAULT_CATEGORIES: list[Category] = [
         "milch, butter, sahne, schmand, crème fraîche, creme fraiche, saure sahne, quark, "
         "joghurt, skyr, kefir, buttermilch, käse, gouda, emmentaler, parmesan, mozzarella, "
         "feta, hirtenkäse, mascarpone, ricotta, frischkäse, hüttenkäse, camembert, brie, "
-        "bergkäse, cheddar, halloumi, ei, margarine, cremefine, tofu, schlagsahne, kochsahne, pudding"
+        "bergkäse, cheddar, halloumi, ei, margarine, cremefine, schlagsahne, kochsahne, pudding"
+    )),
+    Category("veggie", "Tofu & Vegetarisch", "mdi:leaf", "#8bc34a", _kw(
+        "tofu, räuchertofu, seidentofu, tempeh, seitan, sojaschnetzel, sojagranulat, falafel, "
+        "veggie, vegan, vegetarisch, fleischersatz, lupine"
     )),
     Category("meat", "Fleisch & Wurst", "mdi:food-steak", "#e53935", _kw(
         "fleisch, hackfleisch, hack, rind, rinder, schwein, hähnchen, hühnchen, huhn, pute, "
@@ -63,7 +67,7 @@ DEFAULT_CATEGORIES: list[Category] = [
     )),
     Category("frozen", "Tiefkühl", "mdi:snowflake", "#29b6f6", _kw(
         "tiefkühl, tk, tk-, gefroren, eis, eiscreme, pommes, fischstäbchen, tiefkühlpizza, "
-        "rahmspinat, kroketten, blätterteig tk, erbsen tk"
+        "rahmspinat, kroketten, blätterteig tk, erbsen tk, tiefgekühlt, tiefgefroren"
     )),
     Category("pasta", "Nudeln, Reis & Getreide", "mdi:pasta", "#ffb74d", _kw(
         "nudel, spaghetti, penne, fusilli, farfalle, tagliatelle, lasagneplatte, lasagne, "
@@ -93,7 +97,8 @@ DEFAULT_CATEGORIES: list[Category] = [
         "tomatensauce, passierte tomate, passiert, passata, bbq"
     )),
     Category("canned", "Konserven & Fertiges", "mdi:food-variant", "#78909c", _kw(
-        "dose, dosentomate, konserve, gehackte tomate, geschälte tomate, tomatenmark, kokosmilch, "
+        "dose, dosentomate, konserve, gehackte tomate, geschälte tomate, tomatenmark, tomatenpüree, "
+        "pizzatomate, stückige tomate, tomaten stückig, kokosmilch, "
         "mais dose, kidneybohne, weiße bohne, thunfisch, sardine, gurken glas, gewürzgurke, "
         "essiggurke, kapern, oliven glas, suppe, fertiggericht, instant, rote bete glas, "
         "sauerkraut, apfelmus, kichererbse dose"
@@ -109,7 +114,7 @@ DEFAULT_CATEGORIES: list[Category] = [
     Category("drinks", "Getränke", "mdi:cup-water", "#26a69a", _kw(
         "wasser, mineralwasser, sprudel, saft, orangensaft, apfelsaft, schorle, limonade, "
         "cola, fanta, sprite, eistee, tee, kaffee, espresso, kaffeebohne, kakao getränk, "
-        "bier, wein, weißwein, rotwein, sekt, prosecco, spirituose, gin, rum, wodka, "
+        "bier, dosenbier, wein, weißwein, rotwein, sekt, prosecco, spirituose, gin, rum, wodka, "
         "hafermilch, sojamilch, mandelmilch, smoothie, energy"
     )),
     Category("drugstore", "Drogerie & Hygiene", "mdi:toothbrush-paste", "#7e57c2", _kw(
@@ -148,8 +153,20 @@ def _matches(keyword: str, text: str, words: list[str]) -> bool:
     return any(w == keyword or w.endswith(keyword) for w in words)
 
 
+# Packaging / storage words that decide the aisle regardless of the product itself:
+# "Kidney-Bohnen, aus der Dose" belongs to the cans, "Erbsen, TK" to the freezer.
+_QUALIFIERS: list[tuple[str, frozenset[str]]] = [
+    ("frozen", frozenset({"tk", "tiefkühl", "tiefgekühlt", "tiefgekühlte", "tiefgefroren", "gefroren", "gefrorene"})),
+    ("canned", frozenset({"dose", "dosen", "konserve", "konserven", "abgetropft"})),
+]
+
+
 def categorize(name: str, key: str | None = None) -> str:
     """Return the best matching category id for a product."""
+    name_words = set(re.findall(r"[\wäöüß]+", name.casefold()))
+    for category_id, words in _QUALIFIERS:
+        if name_words & words:
+            return category_id
     texts = [name.casefold()] + ([key.casefold()] if key else [])
     prepared = [(t, re.findall(r"[\wäöüß]+", t)) for t in texts]
     for keyword, category_id in _KEYWORDS:

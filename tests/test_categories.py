@@ -12,6 +12,9 @@ from custom_components.shopping_helper.logic.parser import normalize_key
         ("Olivenöl", "oils"), ("Tomatenmark", "canned"), ("Hähnchenbrust", "meat"),
         ("Preiselbeeren", "produce"), ("Speiseeis", "frozen"), ("Spülmittel", "household"),
         ("Toilettenpapier", "drugstore"), ("Gemüsebrühe", "spices"), ("Irgendwas", "other"),
+        ("Tofu, alle Sorten", "veggie"), ("Kidney-Bohnen, aus der Dose", "canned"),
+        ("Tomatenpüree", "canned"), ("Erbsen, tiefgekühlt", "frozen"), ("Spinat, TK", "frozen"),
+        ("Erbsen", "produce"), ("Glasnudeln", "pasta"), ("Dosenbier", "drinks"),
     ],
 )
 def test_categorize(name, category):

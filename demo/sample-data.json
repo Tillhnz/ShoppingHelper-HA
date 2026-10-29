@@ -426,7 +426,7 @@
    "name": "Fleisch & Wurst",
    "icon": "mdi:food-steak",
    "color": "#e53935",
-   "position": 3,
+   "position": 4,
    "items": [
     {
      "key": "hähnchenbrustfilet",
@@ -474,7 +474,7 @@
    "name": "Nudeln, Reis & Getreide",
    "icon": "mdi:pasta",
    "color": "#ffb74d",
-   "position": 6,
+   "position": 7,
    "items": [
     {
      "key": "basmatireis",
@@ -559,7 +559,7 @@
    "name": "Backzutaten",
    "icon": "mdi:cupcake",
    "color": "#ec407a",
-   "position": 7,
+   "position": 8,
    "items": [
     {
      "key": "mehl",
@@ -621,7 +621,7 @@
    "name": "Gewürze & Würzmittel",
    "icon": "mdi:shaker-outline",
    "color": "#8d6e63",
-   "position": 8,
+   "position": 9,
    "items": [
     {
      "key": "currypaste",
@@ -706,7 +706,7 @@
    "name": "Öl, Essig & Saucen",
    "icon": "mdi:bottle-tonic-outline",
    "color": "#7cb342",
-   "position": 9,
+   "position": 10,
    "items": [
     {
      "key": "olivenöl",
@@ -791,7 +791,7 @@
    "name": "Konserven & Fertiges",
    "icon": "mdi:food-variant",
    "color": "#78909c",
-   "position": 10,
+   "position": 11,
    "items": [
     {
      "key": "kokosmilch",
@@ -839,7 +839,7 @@
    "name": "Getränke",
    "icon": "mdi:cup-water",
    "color": "#26a69a",
-   "position": 13,
+   "position": 14,
    "items": [
     {
      "key": "kaffee",
@@ -919,7 +919,7 @@
    "name": "Drogerie & Hygiene",
    "icon": "mdi:toothbrush-paste",
    "color": "#7e57c2",
-   "position": 14,
+   "position": 15,
    "items": [
     {
      "key": "toilettenpapier",
@@ -962,7 +962,7 @@
    "name": "Haushalt",
    "icon": "mdi:spray-bottle",
    "color": "#5c6bc0",
-   "position": 15,
+   "position": 16,
    "items": [
     {
      "key": "küchenrolle",
@@ -1088,6 +1088,12 @@
    "name": "Milch, Käse & Eier",
    "icon": "mdi:cheese",
    "color": "#f9a825"
+  },
+  {
+   "id": "veggie",
+   "name": "Tofu & Vegetarisch",
+   "icon": "mdi:leaf",
+   "color": "#8bc34a"
   },
   {
    "id": "meat",

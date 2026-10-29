@@ -11,7 +11,7 @@ from .categories import FALLBACK_CATEGORY, _matches
 
 CATEGORY_EMOJI: dict[str, str] = {
     "produce": "🥬", "bakery": "🍞", "dairy": "🧀", "meat": "🥩", "fish": "🐟",
-    "frozen": "🧊", "pasta": "🍝", "baking": "🧁", "spices": "🧂", "oils": "🫒",
+    "frozen": "🧊", "veggie": "🌱", "pasta": "🍝", "baking": "🧁", "spices": "🧂", "oils": "🫒",
     "canned": "🥫", "breakfast": "🥣", "snacks": "🍫", "drinks": "🥤",
     "drugstore": "🧴", "household": "🧽", "other": "🛒",
 }
@@ -32,7 +32,7 @@ _RAW: dict[str, str] = {
     "🧄": "knoblauch", "🧅": "zwiebel, schalotte, frühlingszwiebel, lauchzwiebel", "🥔": "kartoffel, pommes, kroketten, gnocchi",
     "🍠": "süßkartoffel", "🍄": "pilz, champignon, pfifferling, steinpilz, shiitake", "🌿": "petersilie, basilikum, koriander, "
     "dill, minze, rosmarin, thymian, salbei, schnittlauch, kräuter, oregano, majoran, lorbeer, kresse",
-    "🫘": "bohne, kidneybohne, kichererbse, linse, edamame", "🥜": "erdnuss, erdnussbutter",
+    "🫘": "bohne, kidneybohne, kichererbse, linse, edamame, erbse, tofu, räuchertofu, seidentofu, tempeh, sojaschnetzel", "🥜": "erdnuss, erdnussbutter", "🧆": "falafel",
     "🌰": "nuss, haselnuss, walnuss, mandel, cashew, pistazie, maronen, pinienkern",
     "🎃": "kürbis", "🥗": "rote bete, radieschen, rettich, sellerie, fenchel, kohlrabi, lauch, porree, spargel, artischocke",
     # bakery & breakfast

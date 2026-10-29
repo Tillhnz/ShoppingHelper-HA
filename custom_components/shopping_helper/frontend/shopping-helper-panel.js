@@ -130,7 +130,7 @@ class ShoppingHelperPanel extends HTMLElement {
       <div class="content">
         <section id="list-tab">
           <form class="add card" id="add-form" autocomplete="off">
-            <input id="add-input" placeholder="Artikel hinzufügen, z. B. „2 l Milch“" enterkeyhint="done" autocomplete="off" />
+            <input id="add-input" placeholder="Artikel hinzufügen …" enterkeyhint="done" autocomplete="off" />
             <select id="add-list" title="Ziel-Liste" hidden></select>
             <button type="submit" class="add-btn" title="Hinzufügen"><ha-icon icon="mdi:plus"></ha-icon></button>
           </form>
@@ -1081,6 +1081,10 @@ const STYLES = `
     background: var(--secondary-background-color, transparent);
     border: 1px solid var(--sh-divider); border-radius: 8px; padding: 6px 8px; max-width: 160px;
   }
+  .add select {
+    max-width: 45%; flex-shrink: 0; padding: 6px 4px 6px 8px; font-size: 14px;
+    text-overflow: ellipsis; background-color: var(--secondary-background-color, transparent);
+  }
   .add-btn {
     width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; border: none; cursor: pointer;
     background: var(--primary-color); color: var(--text-primary-color, #fff);
@@ -1355,7 +1359,7 @@ const STYLES = `
     .tab { padding: 10px 10px 12px; font-size: 14px; gap: 4px; }
     .kpis { grid-template-columns: repeat(2, 1fr); }
     .grid, .top { grid-template-columns: 1fr; }
-    .add select { max-width: 110px; }
+    .add select { max-width: 46%; }
     .seg button { padding: 5px 9px; }
     .progress { display: none; }
     .details { padding-left: 14px; }
