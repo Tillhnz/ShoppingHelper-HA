@@ -82,3 +82,26 @@ def test_items_at_home_are_not_purchases():
     # ... and putting the "at home" one back on the list must not undo that purchase
     t.update([src("a", "Salz"), src("b", "Salz", "completed")], "2026-09-01")
     assert t.purchases["salz"]["count"] == 1
+
+
+def test_marked_at_home_after_checking_is_taken_back():
+    t = _tracker()
+    t.update([src("a", "Butter")], "2026-10-30")
+    t.update([src("a", "Butter", "completed")], "2026-10-30")  # tapped: bought
+    assert t.purchases["butter"]["count"] == 1
+    # two days later it turns out it was at home: same status, now marked "at home"
+    t.update([src("a", "Butter", "completed")], "2026-11-01", not_bought={"todo.list|a"})
+    assert "butter" not in t.purchases
+    assert t.daily["2026-10-30"]["done"] == 0
+    assert t.statistics("2026-11-02")["kpis"]["total_purchases"] == 0
+
+
+def test_record_counts_at_home_item_as_bought_once():
+    t = _tracker()
+    item = src("a", "Butter", "completed")
+    t.update([src("a", "Butter")], "2026-10-30")
+    t.update([item], "2026-10-30", not_bought={"todo.list|a"})
+    assert "butter" not in t.purchases
+    t.record(item, "2026-10-31")
+    t.record(item, "2026-10-31")
+    assert t.purchases["butter"]["count"] == 1 and t.daily["2026-10-31"]["done"] == 1

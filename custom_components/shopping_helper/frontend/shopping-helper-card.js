@@ -503,10 +503,8 @@ class ShoppingHelperCard extends HTMLElement {
           item.own ? `<span class="dot own" title="Eigene Liste"></span>` : ""
         }</span>`
       : "";
-    const haveBtn =
-      !item.checked || item.have
-        ? `<button class="have-btn ${item.have ? "on" : ""}" data-have-btn title="${item.have ? "Doch einkaufen" : "Bereits vorhanden"}"><ha-icon icon="${item.have ? "mdi:home" : "mdi:home-outline"}"></ha-icon></button>`
-        : "";
+    // on every row, so a mistaken check can be corrected to "at home"
+    const haveBtn = `<button class="have-btn ${item.have ? "on" : ""}" data-have-btn title="${item.have ? "Doch einkaufen" : "Bereits vorhanden"}"><ha-icon icon="${item.have ? "mdi:home" : "mdi:home-outline"}"></ha-icon></button>`;
     return `<li class="item ${item.checked ? "checked" : ""} ${item.have ? "have" : ""} ${item.partial ? "partial" : ""} ${pending ? "pending" : ""}"
               ${color ? `style="--cat:${shEsc(color)}"` : ""} data-key="${shEsc(item.key)}" data-checked="${item.checked}" data-have="${!!item.have}">
         <span class="check"><ha-icon icon="${item.have ? "mdi:home" : "mdi:check"}"></ha-icon></span>

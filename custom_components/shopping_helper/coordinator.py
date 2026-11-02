@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 import logging
+import time
 from typing import Any
 
 from homeassistant.components.todo import TodoListEntityFeature
@@ -58,6 +59,9 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Items marked "already at home": entity_id -> {uid: status}. They are checked at the
         # source (Cookidoo: "vorhanden") but don't count as purchases.
         self.have: dict[str, dict[str, str]] = {}
+        # (entity_id, uid) -> time it was marked; kept until the list confirms the check,
+        # so a refresh that still sees the old "open" state doesn't drop the marking
+        self._have_pending: dict[tuple[str, str], float] = {}
 
     # ------------------------------------------------------------------ settings
     @property
@@ -152,7 +156,7 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
 
         self._sources = sources
-        if self._prune_hidden() | self._prune_map(self.have):
+        if self._prune_hidden() | self._prune_map(self.have, self._have_pending):
             self._schedule_save()
         today = dt_util.now().date().isoformat()
         not_bought = {f"{e}|{u}" for e, uids in self.have.items() for u in uids}
@@ -191,14 +195,27 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _prune_hidden(self) -> bool:
         return self._prune_map(self.hidden)
 
-    def _prune_map(self, mapping: dict[str, dict[str, str]]) -> bool:
+    def _prune_map(
+        self,
+        mapping: dict[str, dict[str, str]],
+        pending: dict[tuple[str, str], float] | None = None,
+    ) -> bool:
         """Forget entries whose item left the list or whose status changed elsewhere."""
         current = {(s.entity_id, s.uid): s.status for s in self._sources}
         changed = False
+        now = time.monotonic()
         for entity_id in list(mapping):
             uids = mapping[entity_id]
             for uid, status in list(uids.items()):
-                if current.get((entity_id, uid)) != status:
+                ident = (entity_id, uid)
+                if pending is not None and ident in pending:
+                    if current.get(ident) == status:
+                        del pending[ident]  # confirmed by the list
+                        continue
+                    if ident in current and now - pending[ident] < 600:
+                        continue  # list hasn't caught up yet
+                    del pending[ident]
+                if current.get(ident) != status:
                     del uids[uid]
                     changed = True
             if not uids:
@@ -244,13 +261,31 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Check/uncheck a merged item on every list it came from."""
         item = self._find(key)
         status = STATUS_DONE if checked else STATUS_OPEN
+        today = dt_util.now().date().isoformat()
         for src in item["sources"]:
-            self.have.get(src["entity_id"], {}).pop(src["uid"], None)  # bought / reopened
+            was_have = self.have.get(src["entity_id"], {}).pop(src["uid"], None) is not None
+            self._have_pending.pop((src["entity_id"], src["uid"]), None)
             if src["status"] != status:
                 await self._call(
                     "update_item", src["entity_id"], {"item": src["uid"], "status": status}
                 )
+            elif checked and was_have:
+                # was "at home", now really bought – the list status doesn't change, so count it here
+                self.history.record(self._source_item(src), today, self.overrides)
+        self._schedule_save()
         await self.async_refresh()
+
+    @staticmethod
+    def _source_item(src: dict[str, Any]) -> SourceItem:
+        return SourceItem(
+            entity_id=src["entity_id"],
+            list_name=src["list_name"],
+            uid=src["uid"],
+            summary=src["summary"],
+            description=src.get("description"),
+            status=src["status"],
+            is_cookidoo=src["is_cookidoo"],
+        )
 
     async def async_set_have(self, key: str, have: bool) -> None:
         """Mark an item as already at home (checked, but not bought) – or undo that."""
@@ -261,8 +296,11 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if have:
                 # record first so the history doesn't count the check as a purchase
                 self.have.setdefault(entity_id, {})[uid] = STATUS_DONE
+                if src["status"] != STATUS_DONE:
+                    self._have_pending[(entity_id, uid)] = time.monotonic()
             else:
                 self.have.get(entity_id, {}).pop(uid, None)
+                self._have_pending.pop((entity_id, uid), None)
             if src["status"] != status:
                 await self._call("update_item", entity_id, {"item": uid, "status": status})
         self.have = {e: u for e, u in self.have.items() if u}

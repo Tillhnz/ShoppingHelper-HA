@@ -25,7 +25,10 @@ Eigene:   2 l Milch     ┘──►  Milch · 2,3 l                            
   (bei Cookidoo wird er als „vorhanden“ markiert). Abgehakte Artikel wandern in „Im Wagen“.
 - **Bereits vorhanden** – das Haus-Symbol an jedem Eintrag markiert Dinge, die noch zu Hause
   sind: Sie verschwinden von der Liste (Bereich „Bereits vorhanden“), werden in Cookidoo als
-  vorhanden markiert, zählen aber nicht als Einkauf in der Statistik.
+  vorhanden markiert, zählen aber nicht als Einkauf in der Statistik. Versehentlich als gekauft
+  abgehakt? Das Haus gibt es auch unter „Im Wagen“ – der Kauf wird dann aus der Statistik genommen.
+  Hinweis: Was du direkt in der Cookidoo-App abhakst, kann Shopping Helper nicht von einem Kauf
+  unterscheiden.
 - **Zwei Ansichten** – oben rechts in der Liste zwischen **Liste** und **Kacheln** umschalten
   (wird pro Gerät gemerkt). Die Kachelansicht zeigt jedes Lebensmittel als Kachel mit Symbol
   (🧅 🥛 🧀 …, rund 480 Begriffe erkannt, sonst das Symbol der Kategorie). Antippen = gekauft,

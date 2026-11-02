@@ -544,7 +544,7 @@ class ShoppingHelperPanel extends HTMLElement {
         <span class="tile-name">${esc(i.name)}</span>
         <span class="tile-qty">${esc(i.quantity || "")}</span>
         ${i.sources.length > 1 ? `<span class="tile-merged" title="Aus ${i.sources.length} Einträgen">${i.sources.length}</span>` : ""}
-        ${!i.checked || i.have ? `<button class="tile-have ${i.have ? "on" : ""}" data-have-btn title="${i.have ? "Doch einkaufen" : "Bereits vorhanden"}" aria-label="${esc(i.name)}: ${i.have ? "doch einkaufen" : "bereits vorhanden"}"><ha-icon icon="${i.have ? "mdi:home" : "mdi:home-outline"}"></ha-icon></button>` : ""}
+        <button class="tile-have ${i.have ? "on" : ""}" data-have-btn title="${i.have ? "Doch einkaufen" : "Bereits vorhanden"}" aria-label="${esc(i.name)}: ${i.have ? "doch einkaufen" : "bereits vorhanden"}"><ha-icon icon="${i.have ? "mdi:home" : "mdi:home-outline"}"></ha-icon></button>
         <button class="tile-more" data-more="${esc(i.key)}" title="Details" aria-label="Details zu ${esc(i.name)}"><ha-icon icon="mdi:dots-horizontal"></ha-icon></button>
       </div>`;
     };
@@ -707,7 +707,6 @@ class ShoppingHelperPanel extends HTMLElement {
     const dots = item.sources
       .map((s) => `<span class="dot ${s.is_cookidoo ? "cookidoo" : "own"}" title="${esc(s.list_name)}"></span>`)
       .join("");
-    const showHave = !item.checked || item.have;
     return `<li class="item ${item.checked ? "checked" : ""} ${item.have ? "have" : ""} ${item.partial ? "partial" : ""} ${pending ? "pending" : ""} ${expanded ? "expanded" : ""}"
               style="--cat:${esc(color)}" data-key="${esc(item.key)}" data-checked="${item.checked}" data-have="${item.have}">
       <div class="row">
@@ -715,11 +714,7 @@ class ShoppingHelperPanel extends HTMLElement {
         <span class="item-name">${esc(item.name)}</span>
         <span class="dots">${dots}</span>
         ${item.quantity ? `<span class="qty">${esc(item.quantity)}</span>` : ""}
-        ${
-          showHave
-            ? `<button class="have-btn ${item.have ? "on" : ""}" data-have-btn title="${item.have ? "Doch einkaufen" : "Bereits vorhanden"}" aria-label="${esc(item.name)}: ${item.have ? "doch einkaufen" : "bereits vorhanden"}"><ha-icon icon="${item.have ? "mdi:home" : "mdi:home-outline"}"></ha-icon></button>`
-            : ""
-        }
+        <button class="have-btn ${item.have ? "on" : ""}" data-have-btn title="${item.have ? "Doch einkaufen" : "Bereits vorhanden"}" aria-label="${esc(item.name)}: ${item.have ? "doch einkaufen" : "bereits vorhanden"}"><ha-icon icon="${item.have ? "mdi:home" : "mdi:home-outline"}"></ha-icon></button>
         <button class="icon-btn small more" data-more="${esc(item.key)}" title="Details" aria-expanded="${expanded}"><ha-icon icon="mdi:chevron-down"></ha-icon></button>
       </div>
       ${

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 DOMAIN = "shopping_helper"
-VERSION = "1.5.2"
+VERSION = "1.5.3"
 
 CONF_COOKIDOO_LISTS = "cookidoo_lists"
 CONF_OWN_LISTS = "own_lists"

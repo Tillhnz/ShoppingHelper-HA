@@ -115,6 +115,42 @@ async def have_flow():
     assert hass.lists["todo.ck_list"][0]["status"] == "needs_action" and not c.have
 
 
+async def have_after_bought_flow():
+    hass, c = setup([it("a", "Butter", "needs_action")], [], [])
+    await c.async_refresh()
+    await c.async_set_checked("butter", True)  # tapped by mistake
+    assert c.history.purchases["butter"]["count"] == 1
+    await c.async_set_have("butter", True)  # actually at home
+    assert "butter" not in c.history.purchases
+    assert c.data["statistics"]["kpis"]["total_purchases"] == 0
+    await c.async_set_checked("butter", True)  # bought after all
+    assert c.history.purchases["butter"]["count"] == 1
+
+
+async def have_race_flow():
+    """A refresh that still sees the old open state must not drop the marking."""
+    hass, c = setup([it("a", "Salz", "needs_action")], [], [])
+    await c.async_refresh()
+    real_call = hass.call
+
+    async def slow_call(domain, service, data=None, blocking=False, target=None, return_response=False):
+        if service == "update_item":
+            await c.async_refresh()  # stale refresh runs before the list is updated
+        return await real_call(domain, service, data, blocking, target, return_response)
+
+    hass.services.async_call = slow_call
+    await c.async_set_have("salz", True)
+    assert "salz" not in c.history.purchases and c.have
+
+
+def test_have_after_bought():
+    asyncio.run(have_after_bought_flow())
+
+
+def test_have_race():
+    asyncio.run(have_race_flow())
+
+
 def test_have():
     asyncio.run(have_flow())
 

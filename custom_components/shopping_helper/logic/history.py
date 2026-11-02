@@ -71,6 +71,11 @@ class HistoryTracker:
             ident = f"{src.entity_id}|{src.uid}"
             current[ident] = src.status
             previous = self.seen.get(ident)
+            if ident in not_bought and ident in self.counted:
+                # counted as bought, but it is "already at home" – take the purchase back
+                # (marked at home after checking it off, or the marking arrived late)
+                self.retract(src, ident)
+                changed = True
             if previous is None:
                 if self.initialized:
                     day["added"] += 1
@@ -87,9 +92,7 @@ class HistoryTracker:
                             day["done"] += 1
                             self._purchase(src, today, overrides, ident)
                     elif self.counted.get(ident) == today:
-                        self._unpurchase(src, today)
-                        day["done"] = max(0, day["done"] - 1)
-                        del self.counted[ident]
+                        self.retract(src, ident)  # unchecked again the same day
                 changed = True
         if set(current) != set(self.seen):
             changed = True
@@ -131,18 +134,32 @@ class HistoryTracker:
         entry["dates"] = (entry["dates"] + [today])[-MAX_PURCHASE_DATES:]
         self.snoozed.pop(key, None)
 
-    def _unpurchase(self, src: SourceItem, today: str) -> None:
-        """Unchecked again on the same day: take the purchase back."""
+    def record(self, src: SourceItem, today: str, overrides: dict[str, str] | None = None) -> None:
+        """Count an already checked item as bought now (it was "at home" before)."""
+        ident = f"{src.entity_id}|{src.uid}"
+        if ident in self.counted:
+            return
+        self.daily.setdefault(today, {"added": 0, "done": 0})["done"] += 1
+        self._purchase(src, today, overrides or {}, ident)
+
+    def retract(self, src: SourceItem, ident: str) -> bool:
+        """Undo the purchase that was counted for this list entry."""
+        day = self.counted.pop(ident, None)
+        if day is None:
+            return False
+        if day in self.daily:
+            self.daily[day]["done"] = max(0, self.daily[day]["done"] - 1)
         key, _ = self._key_name(src)
         entry = self.purchases.get(key)
-        if not entry or not entry["dates"] or entry["dates"][-1] != today:
-            return
-        entry["dates"].pop()
-        entry["count"] = max(0, entry["count"] - 1)
-        field = "cookidoo" if src.is_cookidoo else "own"
-        entry[field] = max(0, entry[field] - 1)
-        if entry["count"] == 0:
-            del self.purchases[key]
+        if entry and day in entry["dates"]:
+            dates = entry["dates"]
+            del dates[len(dates) - 1 - dates[::-1].index(day)]
+            entry["count"] = max(0, entry["count"] - 1)
+            field = "cookidoo" if src.is_cookidoo else "own"
+            entry[field] = max(0, entry[field] - 1)
+            if entry["count"] == 0:
+                del self.purchases[key]
+        return True
 
     def _prune(self, today: str) -> None:
         cutoff = (_d(today) - timedelta(days=MAX_DAYS)).isoformat()
