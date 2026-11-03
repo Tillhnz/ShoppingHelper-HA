@@ -30,9 +30,12 @@ from .const import (
 from .logic.categories import CATEGORY_BY_ID, resolve_order
 from .logic.history import HistoryTracker
 from .logic.merge import STATUS_DONE, STATUS_OPEN, SourceItem, merge_items
+from .logic.recipes import Recipe, RecipeIngredient, build_recipes
 
 _LOGGER = logging.getLogger(__name__)
 TODO = "todo"
+RECIPES_MAX_AGE = 30 * 60  # seconds; recipes are also re-read whenever the ingredient list changes
+RECIPES_RETRY = 5 * 60
 
 
 class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -62,6 +65,12 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # (entity_id, uid) -> time it was marked; kept until the list confirms the check,
         # so a refresh that still sees the old "open" state doesn't drop the marking
         self._have_pending: dict[tuple[str, str], float] = {}
+        # recipes on the Cookidoo shopping list (read through the Cookidoo integration)
+        self._recipes: list[Recipe] = []
+        self._recipes_entity: str | None = None
+        self._recipes_status = "no_cookidoo"
+        self._recipes_sig: tuple | None = None
+        self._recipes_at = 0.0
 
     # ------------------------------------------------------------------ settings
     @property
@@ -156,6 +165,7 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
 
         self._sources = sources
+        await self._async_update_recipes()
         if self._prune_hidden() | self._prune_map(self.have, self._have_pending):
             self._schedule_save()
         today = dt_util.now().date().isoformat()
@@ -182,8 +192,90 @@ class ShoppingHelperCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         result["suggestions"] = self.history.suggestions(today, open_keys)
         result["statistics"] = self.history.statistics(today)
         result["known_names"] = self.history.names()
+        result["recipes"] = self._recipe_cards(result)
         result["updated"] = dt_util.utcnow().isoformat()
         return result
+
+    # ------------------------------------------------------------------ recipes
+    def _cookidoo_ingredient_list(self) -> tuple[str, Any] | None:
+        """The Cookidoo ingredient to-do entity and the Cookidoo client behind it."""
+        registry = er.async_get(self.hass)
+        for entity_id in self.list_entities:
+            entry = registry.async_get(entity_id)
+            if not (
+                entry
+                and entry.platform == COOKIDOO_DOMAIN
+                and (entry.unique_id or "").endswith("_ingredients")
+                and entry.config_entry_id
+            ):
+                continue
+            config_entry = self.hass.config_entries.async_get_entry(entry.config_entry_id)
+            client = getattr(getattr(config_entry, "runtime_data", None), "cookidoo", None)
+            if client is not None and hasattr(client, "get_shopping_list_recipes"):
+                return entity_id, client
+            return entity_id, None
+        return None
+
+    async def _async_update_recipes(self) -> None:
+        """Re-read the recipes when the ingredient list changed, otherwise now and then."""
+        target = self._cookidoo_ingredient_list()
+        if target is None:
+            self._recipes, self._recipes_entity, self._recipes_status = [], None, "no_cookidoo"
+            return
+        entity_id, client = target
+        self._recipes_entity = entity_id
+        if client is None:
+            self._recipes, self._recipes_status = [], "unavailable"
+            return
+        sig = tuple(s.uid for s in self._sources if s.entity_id == entity_id)
+        age = time.monotonic() - self._recipes_at
+        max_age = RECIPES_MAX_AGE if self._recipes_status == "ok" else RECIPES_RETRY
+        if sig == self._recipes_sig and age < max_age:
+            return
+        self._recipes_sig, self._recipes_at = sig, time.monotonic()
+        if not sig:
+            self._recipes, self._recipes_status = [], "ok"
+            return
+        try:
+            raw = await client.get_shopping_list_recipes()
+        except Exception as err:  # noqa: BLE001 - optional feature, never break the list
+            _LOGGER.debug("Reading the Cookidoo recipes failed: %s", err)
+            self._recipes_status = "unavailable"
+            return
+        self._recipes = [
+            Recipe(
+                id=str(getattr(r, "id", "")),
+                name=str(getattr(r, "name", "")),
+                ingredients=[
+                    RecipeIngredient(
+                        name=str(getattr(i, "name", "")),
+                        description=str(getattr(i, "description", "") or ""),
+                    )
+                    for i in getattr(r, "ingredients", []) or []
+                ],
+                url=getattr(r, "url", None) or None,
+                thumbnail=getattr(r, "thumbnail", None) or None,
+            )
+            for r in raw or []
+        ]
+        self._recipes_status = "ok"
+
+    def _recipe_cards(self, result: dict[str, Any]) -> dict[str, Any]:
+        if self._recipes_status != "ok" or not self._recipes_entity:
+            return {"status": self._recipes_status, "items": []}
+        item_keys = {
+            (src["entity_id"], src["uid"]): item["key"]
+            for category in result["categories"]
+            for item in category["items"]
+            for src in item["sources"]
+        }
+        items = [s for s in self._sources if s.entity_id == self._recipes_entity]
+        have = {(e, u) for e, uids in self.have.items() for u in uids}
+        hidden = {(e, u) for e, uids in self.hidden.items() for u in uids}
+        return {
+            "status": "ok",
+            "items": build_recipes(self._recipes, items, have, hidden, item_keys),
+        }
 
     # ------------------------------------------------------------------ hidden items
     def _is_hidden(self, src: SourceItem) -> bool:

@@ -93,7 +93,7 @@
      "checked": false,
      "have": false,
      "mixed_units": false,
-     "partial": false,
+     "partial": true,
      "cookidoo": true,
      "own": false,
      "sources": [
@@ -110,19 +110,33 @@
        "parsed_name": "Knoblauchzehen",
        "quantity": "3 Stück",
        "notes": []
+      },
+      {
+       "entity_id": "todo.cookidoo_einkaufsliste",
+       "list_name": "Cookidoo Einkaufsliste",
+       "uid": "c17",
+       "summary": "Knoblauchzehen",
+       "description": "2 Stück",
+       "status": "completed",
+       "is_cookidoo": true,
+       "done": true,
+       "have": true,
+       "parsed_name": "Knoblauchzehen",
+       "quantity": "2 Stück",
+       "notes": []
       }
      ]
     },
     {
      "key": "zwiebel",
-     "name": "Zwiebel",
+     "name": "Zwiebeln",
      "emoji": "🧅",
      "category": "produce",
      "category_overridden": false,
-     "quantity": "2 Stück",
+     "quantity": "3 Stück",
      "quantities": [
       {
-       "amount": 2.0,
+       "amount": 3.0,
        "unit": "Stück"
       }
      ],
@@ -146,6 +160,20 @@
        "have": false,
        "parsed_name": "Zwiebeln",
        "quantity": "2 Stück",
+       "notes": []
+      },
+      {
+       "entity_id": "todo.cookidoo_einkaufsliste",
+       "list_name": "Cookidoo Einkaufsliste",
+       "uid": "c16",
+       "summary": "Zwiebeln",
+       "description": "1 Stück",
+       "status": "needs_action",
+       "is_cookidoo": true,
+       "done": false,
+       "have": false,
+       "parsed_name": "Zwiebeln",
+       "quantity": "1 Stück",
        "notes": []
       },
       {
@@ -240,7 +268,7 @@
      "checked": false,
      "have": false,
      "mixed_units": false,
-     "partial": false,
+     "partial": true,
      "cookidoo": true,
      "own": false,
      "sources": [
@@ -256,6 +284,20 @@
        "have": false,
        "parsed_name": "Butter",
        "quantity": "120 g",
+       "notes": []
+      },
+      {
+       "entity_id": "todo.cookidoo_einkaufsliste",
+       "list_name": "Cookidoo Einkaufsliste",
+       "uid": "c18",
+       "summary": "Butter",
+       "description": "100 g",
+       "status": "completed",
+       "is_cookidoo": true,
+       "done": true,
+       "have": false,
+       "parsed_name": "Butter",
+       "quantity": "100 g",
        "notes": []
       }
      ]
@@ -1040,7 +1082,7 @@
   "bought": 1,
   "have": 1,
   "progress": 8,
-  "merged": 3,
+  "merged": 5,
   "cookidoo_items": 16,
   "own_items": 11,
   "lists": [
@@ -1048,9 +1090,9 @@
     "entity_id": "todo.cookidoo_einkaufsliste",
     "name": "Cookidoo Einkaufsliste",
     "cookidoo": true,
-    "total": 15,
-    "open": 14,
-    "done": 1
+    "total": 18,
+    "open": 15,
+    "done": 3
    },
    {
     "entity_id": "todo.cookidoo_zusatzliche_einkaufe",
@@ -1180,6 +1222,221 @@
    "color": "#9e9e9e"
   }
  ],
+ "recipes": {
+  "status": "ok",
+  "items": [
+   {
+    "id": "r1",
+    "name": "Spaghetti mit Tomatensauce",
+    "url": "https://cookidoo.de/recipes/recipe/de-DE/r1",
+    "thumbnail": null,
+    "total": 8,
+    "missing": 7,
+    "have": 1,
+    "complete": false,
+    "ingredients": [
+     {
+      "name": "Spaghetti",
+      "quantity": "500 g",
+      "state": "open",
+      "key": "spaghetti",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c7",
+      "emoji": "🍝"
+     },
+     {
+      "name": "Tomaten, passiert",
+      "quantity": "400 g",
+      "state": "open",
+      "key": "tomate",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c8",
+      "emoji": "🍅"
+     },
+     {
+      "name": "Zwiebeln",
+      "quantity": "2 Stück",
+      "state": "open",
+      "key": "zwiebel",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c1",
+      "emoji": "🧅"
+     },
+     {
+      "name": "Knoblauchzehen",
+      "quantity": "3 Stück",
+      "state": "open",
+      "key": "knoblauchzehe",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c2",
+      "emoji": "🧄"
+     },
+     {
+      "name": "Olivenöl",
+      "quantity": "2 EL",
+      "state": "open",
+      "key": "olivenöl",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c9",
+      "emoji": "🫒"
+     },
+     {
+      "name": "Basilikum",
+      "quantity": "1 Bund",
+      "state": "open",
+      "key": "basilikum",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c11",
+      "emoji": "🌿"
+     },
+     {
+      "name": "Parmesan",
+      "quantity": "60 g",
+      "state": "open",
+      "key": "parmesan",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c6",
+      "emoji": "🧀"
+     },
+     {
+      "name": "Salz",
+      "quantity": "1 Prise",
+      "state": "have",
+      "key": "salz",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c10",
+      "emoji": "🧂"
+     }
+    ]
+   },
+   {
+    "id": "r2",
+    "name": "Hähnchen-Curry mit Basmatireis",
+    "url": "https://cookidoo.de/recipes/recipe/de-DE/r2",
+    "thumbnail": null,
+    "total": 5,
+    "missing": 5,
+    "have": 0,
+    "complete": false,
+    "ingredients": [
+     {
+      "name": "Hähnchenbrustfilet",
+      "quantity": "400 g",
+      "state": "open",
+      "key": "hähnchenbrustfilet",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c12",
+      "emoji": "🍗"
+     },
+     {
+      "name": "Kokosmilch",
+      "quantity": "400 g",
+      "state": "open",
+      "key": "kokosmilch",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c13",
+      "emoji": "🥥"
+     },
+     {
+      "name": "Currypaste, rot",
+      "quantity": "2 EL",
+      "state": "open",
+      "key": "currypaste",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c14",
+      "emoji": "🍛"
+     },
+     {
+      "name": "Basmatireis",
+      "quantity": "200 g",
+      "state": "open",
+      "key": "basmatireis",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c15",
+      "emoji": "🍚"
+     },
+     {
+      "name": "Zwiebeln",
+      "quantity": "1 Stück",
+      "state": "open",
+      "key": "zwiebel",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c16",
+      "emoji": "🧅"
+     }
+    ]
+   },
+   {
+    "id": "r3",
+    "name": "Béchamelsauce",
+    "url": "https://cookidoo.de/recipes/recipe/de-DE/r3",
+    "thumbnail": null,
+    "total": 3,
+    "missing": 3,
+    "have": 0,
+    "complete": false,
+    "ingredients": [
+     {
+      "name": "Mehl",
+      "quantity": "250 g",
+      "state": "open",
+      "key": "mehl",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c3",
+      "emoji": "🌾"
+     },
+     {
+      "name": "Butter",
+      "quantity": "120 g",
+      "state": "open",
+      "key": "butter",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c4",
+      "emoji": "🧈"
+     },
+     {
+      "name": "Milch",
+      "quantity": "300 g",
+      "state": "open",
+      "key": "milch",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c5",
+      "emoji": "🥛"
+     }
+    ]
+   },
+   {
+    "id": "r4",
+    "name": "Knoblauchbutter",
+    "url": "https://cookidoo.de/recipes/recipe/de-DE/r4",
+    "thumbnail": null,
+    "total": 2,
+    "missing": 0,
+    "have": 1,
+    "complete": true,
+    "ingredients": [
+     {
+      "name": "Butter",
+      "quantity": "100 g",
+      "state": "bought",
+      "key": "butter",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c18",
+      "emoji": "🧈"
+     },
+     {
+      "name": "Knoblauchzehen",
+      "quantity": "2 Stück",
+      "state": "have",
+      "key": "knoblauchzehe",
+      "entity_id": "todo.cookidoo_einkaufsliste",
+      "uid": "c17",
+      "emoji": "🧄"
+     }
+    ]
+   }
+  ]
+ },
  "history": {
   "daily": [
    {

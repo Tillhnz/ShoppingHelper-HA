@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT))
 from custom_components.shopping_helper.logic.categories import resolve_order  # noqa: E402
 from custom_components.shopping_helper.logic.history import HistoryTracker  # noqa: E402
 from custom_components.shopping_helper.logic.merge import SourceItem, merge_items  # noqa: E402
+from custom_components.shopping_helper.logic.recipes import Recipe, RecipeIngredient as I, build_recipes  # noqa: E402
 
 C, Z, E = "todo.cookidoo_einkaufsliste", "todo.cookidoo_zusatzliche_einkaufe", "todo.einkaufsliste"
 NAMES = {C: "Cookidoo Einkaufsliste", Z: "Cookidoo Zusätzliche Einkäufe", E: "Einkaufsliste"}
@@ -28,6 +29,8 @@ SOURCES = [
     s(C, "c10", "Salz", "1 Prise", "completed"), s(C, "c11", "Basilikum", "1 Bund"),
     s(C, "c12", "Hähnchenbrustfilet", "400 g"), s(C, "c13", "Kokosmilch", "400 g"),
     s(C, "c14", "Currypaste, rot", "2 EL"), s(C, "c15", "Basmatireis", "200 g"),
+    s(C, "c16", "Zwiebeln", "1 Stück"), s(C, "c17", "Knoblauchzehen", "2 Stück", "completed"),
+    s(C, "c18", "Butter", "100 g", "completed"),
     s(Z, "z1", "Küchenrolle"), s(E, "e1", "2 l Milch"), s(E, "e2", "Zwiebel"), s(E, "e3", "1 kg Mehl"),
     s(E, "e4", "Brötchen (6)"), s(E, "e5", "Spülmittel"), s(E, "e6", "Bananen"),
     s(E, "e7", "Joghurt", status="completed"), s(E, "e8", "Kaffee"), s(E, "e9", "Toilettenpapier"),
@@ -69,7 +72,25 @@ while day < today - timedelta(days=6):
         iv = REGULARS[n][0]
         next_due[n] = day + timedelta(days=max(1, round(random.gauss(iv, iv * 0.2))))
 
-result = merge_items(SOURCES, resolve_order(None), {}, {(C, "c10")})  # Salz: already at home
+HAVE = {(C, "c10"), (C, "c17")}  # Salz, Knoblauch: already at home
+result = merge_items(SOURCES, resolve_order(None), {}, HAVE)
+RECIPES = [
+    Recipe("r1", "Spaghetti mit Tomatensauce", [
+        I("Spaghetti", "500 g"), I("Tomaten, passiert", "400 g"), I("Zwiebeln", "2 Stück"),
+        I("Knoblauchzehen", "3 Stück"), I("Olivenöl", "2 EL"), I("Basilikum", "1 Bund"),
+        I("Parmesan", "60 g"), I("Salz", "1 Prise")]),
+    Recipe("r2", "Hähnchen-Curry mit Basmatireis", [
+        I("Hähnchenbrustfilet", "400 g"), I("Kokosmilch", "400 g"), I("Currypaste, rot", "2 EL"),
+        I("Basmatireis", "200 g"), I("Zwiebeln", "1 Stück")]),
+    Recipe("r3", "Béchamelsauce", [I("Mehl", "250 g"), I("Butter", "120 g"), I("Milch", "300 g")]),
+    Recipe("r4", "Knoblauchbutter", [I("Knoblauchzehen", "2 Stück"), I("Butter", "100 g")]),
+]
+for r in RECIPES:
+    r.url = f"https://cookidoo.de/recipes/recipe/de-DE/{r.id}"
+item_keys = {(src["entity_id"], src["uid"]): it["key"]
+             for c in result["categories"] for it in c["items"] for src in it["sources"]}
+result["recipes"] = {"status": "ok", "items": build_recipes(
+    RECIPES, [x for x in SOURCES if x.entity_id == C], HAVE, set(), item_keys)}
 open_keys = {i["key"] for c in result["categories"] for i in c["items"] if not i["checked"]}
 result["history"] = history.export(today.isoformat())
 result["suggestions"] = history.suggestions(today.isoformat(), open_keys)

@@ -66,7 +66,18 @@ class Hass:
             for e in ("todo.ck_list", "todo.ck_extra"): self.lists[e] = []
         self.sync_states()
 
-def setup(ck_list, ck_extra, own, button_disabled=None):
+class FakeCookidoo:
+    def __init__(self, recipes):
+        self.recipes, self.calls = recipes, 0
+
+    async def get_shopping_list_recipes(self):
+        self.calls += 1
+        if isinstance(self.recipes, Exception):
+            raise self.recipes
+        return self.recipes
+
+
+def setup(ck_list, ck_extra, own, button_disabled=None, recipes=None):
     global REG
     REG.entries.clear()
     for e in [RegEntry("todo.ck_list","todo","cookidoo","ck","acc_ingredients"), RegEntry("todo.ck_extra","todo","cookidoo","ck","acc_additional_items"),
@@ -75,6 +86,10 @@ def setup(ck_list, ck_extra, own, button_disabled=None):
                 {"todo.ck_list": State("0","Cookidoo",4), "todo.ck_extra": State("0","Zusätzlich",7), "todo.own": State("0","Einkauf",7), "button.ck_clear": State("unknown","Leeren")})
     hass.sync_states()
     entry = types.SimpleNamespace(data={"cookidoo_lists": ["todo.ck_list","todo.ck_extra"], "own_lists": ["todo.own"]}, options={})
+    client = FakeCookidoo(recipes if recipes is not None else [])
+    ck_entry = types.SimpleNamespace(runtime_data=types.SimpleNamespace(cookidoo=client))
+    hass.config_entries = types.SimpleNamespace(async_get_entry=lambda eid: ck_entry if eid == "ck" else None)
+    hass.cookidoo = client
     return hass, ShoppingHelperCoordinator(hass, entry)
 it = lambda uid, s, st="completed": {"uid": uid, "summary": s, "status": st}
 
@@ -149,6 +164,44 @@ def test_have_after_bought():
 
 def test_have_race():
     asyncio.run(have_race_flow())
+
+
+def _recipe(rid, name, ingredients):
+    ns = types.SimpleNamespace
+    return ns(id=rid, name=name, url=f"https://cookidoo.de/{rid}", thumbnail=None,
+              ingredients=[ns(name=n, description=d) for n, d in ingredients])
+
+
+async def recipes_flow():
+    recipes = [_recipe("r1", "Pasta", [("Spaghetti", "500 g"), ("Salz", "1 Prise")])]
+    items = [dict(it("a", "Spaghetti", "needs_action"), description="500 g"),
+             dict(it("b", "Salz", "needs_action"), description="1 Prise")]
+    hass, c = setup(items, [], [], recipes=recipes)
+    await c.async_refresh()
+    card = c.data["recipes"]["items"][0]
+    assert c.data["recipes"]["status"] == "ok" and card["missing"] == 2
+    await c.async_set_have("salz", True)
+    await c.async_set_checked("spaghetti", True)
+    card = c.data["recipes"]["items"][0]
+    assert card["complete"] and {i["state"] for i in card["ingredients"]} == {"have", "bought"}
+    calls = hass.cookidoo.calls
+    await c.async_refresh()
+    assert hass.cookidoo.calls == calls  # list unchanged → no new request
+
+
+async def recipes_unavailable_flow():
+    hass, c = setup([it("a", "Mehl", "needs_action")], [], [], recipes=RuntimeError("down"))
+    await c.async_refresh()
+    assert c.data["recipes"] == {"status": "unavailable", "items": []}
+    assert c.data["stats"]["total"] == 1  # the list itself still works
+
+
+def test_recipes():
+    asyncio.run(recipes_flow())
+
+
+def test_recipes_unavailable():
+    asyncio.run(recipes_unavailable_flow())
 
 
 def test_have():

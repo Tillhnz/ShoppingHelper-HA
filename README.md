@@ -36,6 +36,11 @@ Eigene:   2 l Milch     ┘──►  Milch · 2,3 l                            
   einem Tipp zurück auf die Liste holen.
 - **Nachvollziehbar zusammengefasst** – der Pfeil an einem Eintrag zeigt, aus welchen Listen und
   Originaleinträgen er besteht, welche Menge jeweils erkannt wurde und wie die Summe zustande kommt.
+- **Rezepte** – eigener Reiter, der die Cookidoo-Zutaten nach Rezept gruppiert: pro Rezept
+  „Alles da“ oder wie viele Zutaten noch fehlen, Fortschrittsbalken und Link zum Rezept in Cookidoo.
+  Zutaten lassen sich dort direkt abhaken oder als vorhanden markieren. Die Rezepte werden über die
+  Verbindung der Cookidoo-Integration gelesen (nur lesend, gecacht); klappt das nicht, bleibt der
+  Reiter leer und der Rest funktioniert normal.
 - **Vorschläge** – Shopping Helper merkt sich, was du wie oft kaufst. Artikel, die wieder fällig
   sind („alle ~7 Tage, zuletzt vor 8 Tagen“) und nicht auf der Liste stehen, erscheinen als
   Vorschläge über der Liste – ein Tipp fügt sie hinzu, „×“ blendet sie eine Woche aus.

@@ -124,6 +124,7 @@ class ShoppingHelperPanel extends HTMLElement {
       </div>
       <div class="tabs">
         <button class="tab active" data-tab="list"><ha-icon icon="mdi:format-list-checks"></ha-icon>Einkaufsliste</button>
+        <button class="tab" data-tab="recipes"><ha-icon icon="mdi:chef-hat"></ha-icon>Rezepte</button>
         <button class="tab" data-tab="stats"><ha-icon icon="mdi:chart-donut"></ha-icon>Übersicht</button>
         <button class="tab" data-tab="insights"><ha-icon icon="mdi:chart-timeline-variant"></ha-icon>Statistik</button>
       </div>
@@ -148,6 +149,7 @@ class ShoppingHelperPanel extends HTMLElement {
           <div class="search" id="search-row" hidden><ha-icon icon="mdi:magnify"></ha-icon><input id="search" placeholder="In der Liste suchen" /></div>
           <div id="list"></div>
         </section>
+        <section id="recipes-tab" hidden></section>
         <section id="stats-tab" hidden></section>
         <section id="insights-tab" hidden></section>
         <div id="sheet"></div>
@@ -165,6 +167,7 @@ class ShoppingHelperPanel extends HTMLElement {
         root.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b === btn));
         root.getElementById("list-tab").hidden = this._tab !== "list";
         root.getElementById("stats-tab").hidden = this._tab !== "stats";
+        root.getElementById("recipes-tab").hidden = this._tab !== "recipes";
         root.getElementById("insights-tab").hidden = this._tab !== "insights";
         this._render();
       })
@@ -257,6 +260,7 @@ class ShoppingHelperPanel extends HTMLElement {
       const key = sel.dataset.categoryFor;
       this._ws({ type: "set_category", key, category: sel.value || null }, "Kategorie gespeichert");
     });
+    root.getElementById("recipes-tab").addEventListener("click", (ev) => this._onRecipeClick(ev));
     root.getElementById("stats-tab").addEventListener("click", (ev) => {
       this._onClearClick(ev);
     });
@@ -400,6 +404,7 @@ class ShoppingHelperPanel extends HTMLElement {
     }
     this._renderListSelect();
     if (this._tab === "list") this._renderList();
+    else if (this._tab === "recipes") this._renderRecipes();
     else if (this._tab === "stats") this._renderStats();
     else this._renderInsights();
   }
@@ -729,6 +734,100 @@ class ShoppingHelperPanel extends HTMLElement {
           : ""
       }
     </li>`;
+  }
+
+  /* ------------------------------------------------------------ recipes */
+  _renderRecipes() {
+    const el = this.shadowRoot.getElementById("recipes-tab");
+    const rec = this._data.recipes || { status: "no_cookidoo", items: [] };
+    const empty = (icon, text) => `<div class="card empty"><ha-icon icon="${icon}"></ha-icon><p>${text}</p></div>`;
+    if (rec.status === "no_cookidoo") {
+      el.innerHTML = empty("mdi:chef-hat", "Rezepte gibt es nur mit der Cookidoo-Einkaufsliste.<br>Wähle sie in den Einstellungen von Shopping Helper aus.");
+      return;
+    }
+    if (rec.status === "unavailable") {
+      el.innerHTML = empty("mdi:cloud-off-outline", "Die Rezepte konnten gerade nicht von Cookidoo geladen werden.<br>Die Einkaufsliste funktioniert trotzdem, Rezepte erscheinen beim nächsten Versuch.");
+      return;
+    }
+    const items = rec.items || [];
+    if (!items.length) {
+      el.innerHTML = empty("mdi:chef-hat", "Auf deiner Cookidoo-Einkaufsliste sind gerade keine Rezepte.");
+      return;
+    }
+    this._recipeOpen ||= {};
+    const complete = items.filter((r) => r.complete).length;
+    const stateIcon = { open: "", bought: "mdi:check", have: "mdi:home" };
+    const card = (r) => {
+      const open = this._recipeOpen[r.id] ?? !r.complete;
+      const done = r.total - r.missing;
+      const status = r.complete
+        ? `<span class="r-pill ok"><ha-icon icon="mdi:check"></ha-icon>Alles da</span>`
+        : `<span class="r-pill">${r.missing} ${r.missing === 1 ? "fehlt" : "fehlen"}</span>`;
+      const rows = r.ingredients
+        .map((i) => {
+          const pending = this._pending.has("rcp:" + r.id + ":" + i.key + ":" + i.name);
+          return `<li class="r-ing ${i.state} ${pending ? "pending" : ""}" data-ing-key="${esc(i.key)}" data-state="${i.state}" data-pid="${esc(r.id + ":" + i.key + ":" + i.name)}">
+            <span class="r-check">${stateIcon[i.state] ? `<ha-icon icon="${stateIcon[i.state]}"></ha-icon>` : ""}</span>
+            <span class="r-emoji" aria-hidden="true">${esc(i.emoji || "🛒")}</span>
+            <span class="r-name">${esc(i.name)}</span>
+            <span class="r-qty">${esc(i.quantity || "")}</span>
+            <button class="have-btn ${i.state === "have" ? "on" : ""}" data-have-btn title="${i.state === "have" ? "Doch einkaufen" : "Bereits vorhanden"}" aria-label="${esc(i.name)}: ${i.state === "have" ? "doch einkaufen" : "bereits vorhanden"}"><ha-icon icon="${i.state === "have" ? "mdi:home" : "mdi:home-outline"}"></ha-icon></button>
+          </li>`;
+        })
+        .join("");
+      return `<section class="card recipe ${r.complete ? "complete" : ""}">
+        <div class="r-head">
+          <button class="r-toggle" data-recipe-toggle="${esc(r.id)}" aria-expanded="${open}">
+            <span class="r-thumb">${
+              r.thumbnail
+                ? `<img src="${esc(r.thumbnail)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`
+                : ""
+            }<ha-icon icon="mdi:chef-hat"></ha-icon></span>
+            <span class="r-title"><b>${esc(r.name)}</b><span>${done} von ${r.total} Zutaten da</span></span>
+            ${status}
+            <ha-icon class="chevron ${open ? "open" : ""}" icon="mdi:chevron-down"></ha-icon>
+          </button>
+        </div>
+        <div class="r-bar"><span style="width:${Math.round((done / r.total) * 100)}%"></span></div>
+        ${
+          open
+            ? `<ul class="r-list">${rows}</ul>${
+                r.url ? `<a class="r-link" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer"><ha-icon icon="mdi:open-in-new"></ha-icon>Rezept in Cookidoo öffnen</a>` : ""
+              }`
+            : ""
+        }
+      </section>`;
+    };
+    el.innerHTML = `<p class="r-summary"><b>${complete}</b> von ${items.length} ${items.length === 1 ? "Rezept" : "Rezepten"} komplett</p>
+      ${items.map(card).join("")}
+      <p class="muted small center">Zutaten aus deinen eigenen Listen gehören zu keinem Rezept und erscheinen nur in der Einkaufsliste.</p>`;
+  }
+
+  _onRecipeClick(ev) {
+    const toggle = ev.target.closest("[data-recipe-toggle]");
+    if (toggle) {
+      const id = toggle.dataset.recipeToggle;
+      const r = (this._data.recipes?.items || []).find((x) => x.id === id);
+      this._recipeOpen ||= {};
+      this._recipeOpen[id] = !(this._recipeOpen[id] ?? !(r && r.complete));
+      this._render();
+      return;
+    }
+    if (ev.target.closest("a")) return;
+    const row = ev.target.closest("[data-ing-key]");
+    if (!row) return;
+    const key = row.dataset.ingKey;
+    const state = row.dataset.state;
+    this._pending.add("rcp:" + row.dataset.pid);
+    row.classList.add("pending");
+    if (ev.target.closest("[data-have-btn]")) {
+      const have = state !== "have";
+      this._ws({ type: "have", key, have }, have ? "Als vorhanden markiert" : "Wieder auf der Liste");
+    } else if (state === "have") {
+      this._ws({ type: "have", key, have: false }, "Wieder auf der Liste");
+    } else {
+      this._ws({ type: "check", key, checked: state === "open" });
+    }
   }
 
   /* ------------------------------------------------------------ statistics */
@@ -1104,6 +1203,53 @@ const STYLES = `
   .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
   .dot.cookidoo { background: var(--sh-cookidoo); }
   .dot.own { background: var(--sh-own); }
+  /* recipes */
+  .r-summary { margin: 0 2px 10px; font-size: 14px; color: var(--sh-muted); }
+  .r-summary b { color: var(--primary-text-color); font-size: 16px; }
+  .recipe { margin-bottom: 10px; overflow: hidden; }
+  .r-toggle {
+    width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: none; border: none;
+    cursor: pointer; text-align: left;
+  }
+  .r-thumb {
+    position: relative; width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0; overflow: hidden;
+    background: color-mix(in srgb, var(--sh-cookidoo) 14%, var(--sh-card)); color: var(--sh-cookidoo);
+    display: flex; align-items: center; justify-content: center; --mdc-icon-size: 24px;
+  }
+  .r-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .r-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .r-title b { font-size: 15px; font-weight: 500; overflow-wrap: anywhere; }
+  .r-title span { font-size: 13px; color: var(--sh-muted); }
+  .r-pill {
+    flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 12px; white-space: nowrap;
+    background: color-mix(in srgb, var(--warning-color, #ffa600) 18%, transparent); color: var(--primary-text-color);
+    display: inline-flex; align-items: center; gap: 3px; --mdc-icon-size: 14px;
+  }
+  .r-pill.ok { background: color-mix(in srgb, var(--success-color, #43a047) 18%, transparent); color: var(--success-color, #43a047); }
+  .r-bar { height: 3px; background: var(--sh-divider); }
+  .r-bar span { display: block; height: 100%; background: var(--success-color, #43a047); transition: width .3s; }
+  .r-list { padding: 2px 0; }
+  .r-ing {
+    display: flex; align-items: center; gap: 10px; padding: 5px 4px 5px 14px; min-height: 44px; cursor: pointer;
+    border-top: 1px solid var(--sh-divider); transition: opacity .2s;
+  }
+  .r-ing:first-child { border-top: none; }
+  .r-ing.pending { opacity: .5; }
+  .r-check {
+    width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--sh-cookidoo); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; --mdc-icon-size: 13px; color: #fff;
+  }
+  .r-ing.bought .r-check { background: var(--sh-cookidoo); }
+  .r-ing.have .r-check { border-color: var(--sh-muted); color: var(--sh-muted); }
+  .r-emoji { font-size: 20px; width: 24px; text-align: center; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+  .r-name { flex: 1; min-width: 0; font-size: 15px; overflow-wrap: anywhere; }
+  .r-ing.bought .r-name, .r-ing.have .r-name { color: var(--sh-muted); }
+  .r-ing.bought .r-name { text-decoration: line-through; }
+  .r-qty { font-size: 13px; color: var(--sh-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .r-link {
+    display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-top: 1px solid var(--sh-divider);
+    color: var(--primary-color); text-decoration: none; font-size: 14px; --mdc-icon-size: 16px;
+  }
   /* tile layout */
   .tile-hint { margin: -2px 2px 10px; font-size: 12px; color: var(--sh-muted); --mdc-icon-size: 14px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
   .tile-group { margin-bottom: 14px; }
@@ -1351,7 +1497,8 @@ const STYLES = `
   }
   @media (max-width: 700px) {
     .content { padding: 10px; }
-    .tab { padding: 10px 10px 12px; font-size: 14px; gap: 4px; }
+    .tab { padding: 10px 8px 12px; font-size: 14px; gap: 4px; }
+    .tab ha-icon { display: none; }
     .kpis { grid-template-columns: repeat(2, 1fr); }
     .grid, .top { grid-template-columns: 1fr; }
     .add select { max-width: 46%; }

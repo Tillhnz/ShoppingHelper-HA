@@ -55,6 +55,24 @@
       const srcs = items.flatMap((i) => i.sources).filter((s) => s.entity_id === l.entity_id);
       l.total = srcs.length; l.done = srcs.filter((s) => s.done).length; l.open = l.total - l.done;
     });
+    // recipes: derive ingredient states from the (merged) list items
+    if (data.recipes && data.recipes.items) {
+      const byKey = Object.fromEntries(items.map((i) => [i.key, i]));
+      data.recipes.items.forEach((r) => {
+        r.ingredients.forEach((ing) => {
+          const it = byKey[ing.key];
+          const src = it && it.sources.find((x) => x.uid === ing.uid);
+          if (!src) { ing.state = "bought"; return; }
+          ing.state = src.have ? "have" : src.done ? "bought" : "open";
+        });
+        const order = { open: 0, bought: 1, have: 2 };
+        r.ingredients.sort((a, b) => order[a.state] - order[b.state]);
+        r.missing = r.ingredients.filter((i) => i.state === "open").length;
+        r.have = r.ingredients.filter((i) => i.state === "have").length;
+        r.complete = r.missing === 0;
+      });
+      data.recipes.items.sort((a, b) => a.complete - b.complete);
+    }
     data.updated = new Date().toISOString();
   };
   const emit = () => { recompute(); setTimeout(() => listener && listener(JSON.parse(JSON.stringify(data))), 150); };
