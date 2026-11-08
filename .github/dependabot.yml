@@ -1,0 +1,10 @@
+# Die Integration bringt keine eigenen Python-Pakete mit (requirements: []). Aktuell gehalten werden die
+# GitHub Actions, mit denen sie geprüft und veröffentlicht wird.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+    groups:
+      actions:
+        patterns: ["*"]
