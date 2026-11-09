@@ -38,14 +38,20 @@
           "sidebar_icon": "Sidebar icon",
           "require_admin": "Only visible for admins",
           "category_order": "Store route (one category per line, top = first)",
-          "clear_cookidoo": "Empty the Cookidoo list after shopping"
+          "clear_cookidoo": "Empty the Cookidoo list after shopping",
+          "update_notify": "Report new versions",
+          "update_notify_service": "Notify service (optional)",
+          "update_ntfy_topic": "ntfy topic (optional)"
         },
         "data_description": {
           "cookidoo_lists": "Usually 'Shopping list' and 'Additional purchases' of the Cookidoo integration.",
           "own_lists": "e.g. the built-in shopping list, Bring!, Todoist …",
           "default_list": "New items from the panel are added here.",
           "category_order": "Categories in the order you walk through your supermarket.",
-          "clear_cookidoo": "When all Cookidoo items are checked, 'Remove completed' empties the Cookidoo shopping list via the Cookidoo integration's 'Clear shopping list' button (enable that button first)."
+          "clear_cookidoo": "When all Cookidoo items are checked, 'Remove completed' empties the Cookidoo shopping list via the Cookidoo integration's 'Clear shopping list' button (enable that button first).",
+          "update_notify": "Checks GitHub every 6 hours and reports each new version once in Home Assistant notifications. Security updates are marked.",
+          "update_notify_service": "e.g. notify.mobile_app_your_phone to also get a push via the companion app.",
+          "update_ntfy_topic": "Topic on ntfy.sh to also get the message in the ntfy app."
         }
       }
     },

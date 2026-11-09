@@ -21,6 +21,9 @@ from .const import (
     CONF_REQUIRE_ADMIN,
     CONF_SIDEBAR_ICON,
     CONF_SIDEBAR_TITLE,
+    CONF_UPDATE_NOTIFY,
+    CONF_UPDATE_NOTIFY_SERVICE,
+    CONF_UPDATE_NTFY_TOPIC,
     COOKIDOO_DOMAIN,
     DEFAULT_SIDEBAR_ICON,
     DEFAULT_SIDEBAR_TITLE,
@@ -137,6 +140,13 @@ class ShoppingHelperOptionsFlow(OptionsFlow):
                         CONF_CATEGORY_ORDER, "\n".join(c.name for c in DEFAULT_CATEGORIES)
                     ),
                 ): selector.TextSelector(selector.TextSelectorConfig(multiline=True)),
+                vol.Optional(CONF_UPDATE_NOTIFY, default=current.get(CONF_UPDATE_NOTIFY, True)): bool,
+                vol.Optional(
+                    CONF_UPDATE_NOTIFY_SERVICE, default=current.get(CONF_UPDATE_NOTIFY_SERVICE, "")
+                ): str,
+                vol.Optional(
+                    CONF_UPDATE_NTFY_TOPIC, default=current.get(CONF_UPDATE_NTFY_TOPIC, "")
+                ): str,
             }
         )
         return self.async_show_form(step_id="init", data_schema=vol.Schema(schema), errors=errors)

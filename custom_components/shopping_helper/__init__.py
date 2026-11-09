@@ -38,6 +38,7 @@ from .const import (
     VERSION,
 )
 from .coordinator import ShoppingHelperCoordinator
+from .update_watch import async_setup_update_watch
 from .websocket_api import async_register_websocket_commands
 
 _LOGGER = logging.getLogger(__name__)
@@ -82,6 +83,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ShoppingHelperConfigEntr
 
     await _async_register_panel(hass, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    async_setup_update_watch(hass, entry)
     return True
 
 

@@ -38,14 +38,20 @@
           "sidebar_icon": "Icon in der Seitenleiste",
           "require_admin": "Nur für Administratoren sichtbar",
           "category_order": "Laden-Reihenfolge (eine Kategorie pro Zeile, oben = zuerst)",
-          "clear_cookidoo": "Cookidoo-Liste nach dem Einkauf leeren"
+          "clear_cookidoo": "Cookidoo-Liste nach dem Einkauf leeren",
+          "update_notify": "Neue Versionen melden",
+          "update_notify_service": "Benachrichtigungsdienst (optional)",
+          "update_ntfy_topic": "ntfy-Thema (optional)"
         },
         "data_description": {
           "cookidoo_lists": "Meist „Einkaufsliste“ und „Zusätzliche Einkäufe“ der Cookidoo-Integration.",
           "own_lists": "z. B. die eingebaute Einkaufsliste, Bring!, Todoist …",
           "default_list": "Neue Artikel aus dem Panel landen hier.",
           "category_order": "Kategorien in der Reihenfolge, in der du durch deinen Supermarkt läufst.",
-          "clear_cookidoo": "Sind alle Cookidoo-Artikel abgehakt, leert „Erledigte entfernen“ die Cookidoo-Einkaufsliste über den Knopf „Einkaufsliste leeren“ der Cookidoo-Integration (diesen Knopf vorher aktivieren)."
+          "clear_cookidoo": "Sind alle Cookidoo-Artikel abgehakt, leert „Erledigte entfernen“ die Cookidoo-Einkaufsliste über den Knopf „Einkaufsliste leeren“ der Cookidoo-Integration (diesen Knopf vorher aktivieren).",
+          "update_notify": "Prüft alle 6 Stunden auf GitHub und meldet jede neue Version einmal in den Benachrichtigungen von Home Assistant. Sicherheitsupdates sind gekennzeichnet.",
+          "update_notify_service": "z. B. notify.mobile_app_dein_handy – dann kommt die Meldung zusätzlich als Push über die Companion-App.",
+          "update_ntfy_topic": "Thema auf ntfy.sh, wenn die Meldung zusätzlich über die ntfy-App kommen soll."
         }
       }
     },
