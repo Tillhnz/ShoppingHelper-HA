@@ -1158,7 +1158,7 @@ const STYLES = `
     border-bottom: 3px solid transparent; --mdc-icon-size: 20px;
   }
   .tab.active { opacity: 1; border-bottom-color: var(--app-header-text-color, #fff); }
-  .content { max-width: 920px; margin: 0 auto; padding: 16px; }
+  .content { max-width: 1240px; margin: 0 auto; padding: 16px; }
   .card {
     background: var(--sh-card); border-radius: var(--sh-radius);
     box-shadow: var(--ha-card-box-shadow, 0 1px 3px rgba(0,0,0,.12));
@@ -1494,6 +1494,14 @@ const STYLES = `
     .prow .ptrack { grid-column: 2 / 4; grid-row: 2; }
     .prow .pmeta { grid-column: 2 / 4; }
     .prow .pmeta + .pmeta { display: none; }
+  }
+  /* Laptop und größer: Kategorien und Rezepte in zwei Spalten statt einer langen Liste */
+  @media (min-width: 1200px) {
+    .content { padding: 20px 24px; }
+    #list:has(> .category) { columns: 2; column-gap: 12px; }
+    #recipes-tab:has(> .recipe) { columns: 2; column-gap: 12px; }
+    #list > .category, #recipes-tab > .recipe { break-inside: avoid; }
+    #list > :not(.category), #recipes-tab > :not(.recipe) { column-span: all; }
   }
   @media (max-width: 700px) {
     .content { padding: 10px; }
